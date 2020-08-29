@@ -5,6 +5,11 @@ import os
 import scipy
 from scipy import spatial
 
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
 
 config = {
     "corsika_primary_path": os.path.join(
@@ -30,11 +35,13 @@ config = {
         },
     },
     "energy_supports_GeV": np.geomspace(1e0, 1e3, 16),
-    "azimuth_supports_deg": [0.0, 120.0, 240.0],
-    "radius_supports_m": np.linspace(0, 1.25e3, 125),
-    "aperture_radius_m": 5.0,
+    "azimuth_supports_deg": [0.0],
+    "radius_supports_m": np.linspace(0, 1.25e3, 25),
+    "aperture_radius_m": 10.0,
     "maximum_bin_edges_m": np.linspace(5e3, 25e3, 10),
-    "max_energy_in_run": 1e1,
+    "max_energy_in_run": 1e3,
+    "c_parallel_bin_edges_deg": np.linspace(-0.5, 2.5, 64+32 + 1),
+    "c_perpendicular_bin_edges_deg": np.linspace(-0.5, 0.5, 32 + 1),
 }
 
 
@@ -83,13 +90,12 @@ def _project_to_image(
     x,
     y,
 ):
-    cxs = light_field.cy
-    cys = light_field.cx
-
+    cys_ = cxs
+    cxs_ = cys
     azimuth = np.arctan2(y, x)
 
-    cPara = np.cos(-azimuth)*cys - np.sin(-azimuth)*cxs
-    cPerp = np.sin(-azimuth)*cys + np.cos(-azimuth)*cxs
+    cPara = np.cos(-azimuth)*cys_ - np.sin(-azimuth)*cxs_
+    cPerp = np.sin(-azimuth)*cys_ + np.cos(-azimuth)*cxs_
 
     hist = np.histogram2d(
         x=cPara,
@@ -98,7 +104,7 @@ def _project_to_image(
     return hist
 
 
-energy = 0.5
+energy = 1.0
 
 
 steering_dict = make_corsika_steering_card(
@@ -130,6 +136,23 @@ num_altitude_bins = 15
 altitude_bin_edges = np.linspace(5e3, 35e3, num_altitude_bins + 1)
 energies_in_altitude_bins = np.zeros(num_altitude_bins)
 num_thrown_in_altitude_bins = np.zeros(num_altitude_bins, dtype=np.int)
+
+
+num_azimuth_bins = len(config["azimuth_supports_deg"])
+num_radial_bins = len(config["radius_supports_m"])
+
+views = {}
+for az in range(num_azimuth_bins):
+    views[az] = {}
+    for r in range(num_radial_bins):
+        views[az][r] = {}
+        for alt in range(num_altitude_bins):
+            views[az][r][alt] = np.zeros(
+                shape=(
+                    len(config["c_parallel_bin_edges_deg"]) - 1,
+                    len(config["c_perpendicular_bin_edges_deg"]) - 1,
+                )
+            )
 
 for airshower in corsika:
     event_header, cherenkov_bunches = airshower
@@ -177,11 +200,35 @@ for airshower in corsika:
         r=config["aperture_radius_m"]
     )
 
-    views = []
-    for meet in meets:
+    for i, meet in enumerate(meets):
         view = cherenkov_bunches[meet, :]
-        views.append(view)
 
+        img = _project_to_image(
+            cxs=view[:, cpw.ICX],
+            cys=view[:, cpw.ICY],
+            c_parallel_bin_edges=np.deg2rad(config["c_parallel_bin_edges_deg"]),
+            c_perpendicular_bin_edges=np.deg2rad(config["c_perpendicular_bin_edges_deg"]),
+            x=xy_supports[i, 0],
+            y=xy_supports[i, 1],
+        )
+
+        az = i // num_radial_bins
+        ra = i % num_radial_bins
+
+        views[az][ra][altitude_bin] += img
 
     print(num_thrown_in_altitude_bins)
 
+
+for az in range(num_azimuth_bins):
+    for r in range(num_radial_bins):
+        for alt in range(num_altitude_bins):
+
+            fig = plt.figure()
+            ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+            ax.pcolormesh(views[az][r][alt].T)
+            ax.set_aspect("equal")
+            ax.set_xlabel("c para / deg")
+            ax.set_ylabel("c perp / deg")
+            fig.savefig("{:03d}_{:03d}_{:03d}_img.jpg".format(az, r, alt))
+            plt.close(fig)
