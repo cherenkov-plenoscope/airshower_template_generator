@@ -26,6 +26,7 @@ def init(
     sites=examples.SITES,
     particles=examples.PARTICLES,
     binning=examples.BINNING,
+    run_config=examples.RUN_CONFIG,
 ):
     os.makedirs(work_dir, exist_ok=True)
     json_numpy.write(path=os.path.join(work_dir, "sites.json"), out_dict=sites)
@@ -35,14 +36,16 @@ def init(
     json_numpy.write(
         path=os.path.join(work_dir, "binning.json"), out_dict=binning
     )
+    json_numpy.write(path=os.path.join(work_dir, "run_config.json"), out_dict=run_config)
 
 
-def make_jobs(work_dir, run_config=examples.RUN_CONFIG):
+def make_jobs(work_dir):
     map_dir = os.path.join(work_dir, "map")
 
     sites = json_numpy.read(os.path.join(work_dir, "sites.json"))
     particles = json_numpy.read(os.path.join(work_dir, "particles.json"))
     binning = json_numpy.read(os.path.join(work_dir, "binning.json"))
+    run_config = json_numpy.read(os.path.join(work_dir, "run_config.json"))
 
     energy_bin_edges = np.geomspace(
         binning["energy_GeV"]["start"],
@@ -161,7 +164,11 @@ def image_pixels_are_square(binning):
 
 
 def _linspace(binning):
-    return np.linspace(binning["start"], binning["stop"], binning["num_bins"],)
+    return np.linspace(
+        binning["start"],
+        binning["stop"],
+        binning["num_bins"],
+    )
 
 
 def _xy_supports(binning):
@@ -502,7 +509,9 @@ def write_raw(raw_look_up, path):
             append_tar(
                 tar_obj=tar_obj,
                 name="num_airshowers.int64.gz",
-                payload_bytes=gzip.compress(data=num.tobytes(order="c"),),
+                payload_bytes=gzip.compress(
+                    data=num.tobytes(order="c"),
+                ),
             )
         nfs.move(src=tmp_path, dst=path)
 
@@ -537,7 +546,10 @@ def read_raw(path):
         raw = gzip.decompress(tar_obj.extractfile(tinfo).read())
         arr = np.frombuffer(raw, dtype=np.int64)
         arr = arr.reshape(
-            (_b["energy_GeV"]["num_bins"], _b["altitude_m"]["num_bins"],),
+            (
+                _b["energy_GeV"]["num_bins"],
+                _b["altitude_m"]["num_bins"],
+            ),
             order="c",
         )
         out["num_airshowers"] = arr

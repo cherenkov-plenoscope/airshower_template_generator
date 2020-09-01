@@ -13,7 +13,9 @@ setuptools.setup(
     url="https://github.com/cherenkov-plenoscope/airshower_template_generator.git",
     author="Sebastian Achim Mueller",
     author_email="sebastian-achim.mueller@mpi-hd.mpg.de",
-    packages=["airshower_template_generator",],
+    packages=[
+        "airshower_template_generator",
+    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
