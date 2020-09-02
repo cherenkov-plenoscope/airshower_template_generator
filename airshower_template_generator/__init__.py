@@ -50,7 +50,6 @@ def make_jobs(work_dir):
     energy_bin_supports = explicit_binning["energy_GeV"]["supports"]
 
     az = binning["azimuth_deg"]
-    assert np.abs(az["stop"] - az["start"] - 360.0) < 1e-6
     assert image_pixels_are_square(binning=binning)
     jobs = []
     for site_key in sites:
@@ -138,9 +137,9 @@ def _project_to_image(
 
 def image_pixels_are_square(binning):
     para = binning["image_parallel_deg"]
-    density_para = para["num_bins"] / (para["stop"] - para["start"])
+    density_para = para["num_bins"] / (para["stop_edge"] - para["start_edge"])
     perp = binning["image_perpendicular_deg"]
-    density_perp = perp["num_bins"] / (perp["stop"] - perp["start"])
+    density_perp = perp["num_bins"] / (perp["stop_edge"] - perp["start_edge"])
     return np.abs(density_para / density_perp - 1.0) < 1e-6
 
 
