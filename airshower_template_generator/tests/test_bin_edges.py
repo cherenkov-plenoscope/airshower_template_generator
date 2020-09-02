@@ -111,10 +111,10 @@ binning = {
     "energy_GeV": {
         "start_support": 1e0,
         "stop_support": 1e3,
-        "num_supports": 3,
+        "num_bins": 3,
     },
-    "azimuth_deg": {"num_supports": 3},
-    "radius_m": {"start_support": 0.0, "stop_support": 3.0, "num_supports": 4},
+    "azimuth_deg": {"num_bins": 3},
+    "radius_m": {"start_support": 0.0, "stop_support": 3.0, "num_bins": 4},
     "altitude_m": {"start_edge": 0, "stop_edge": 30e3, "num_bins": 3},
     "image_parallel_deg": {
         "start_edge": -0.5,

@@ -51,7 +51,7 @@ def make_explicit_binning(binning):
     out["energy_GeV"]["supports"] = np.geomspace(
         _b["energy_GeV"]["start_support"],
         _b["energy_GeV"]["stop_support"],
-        _b["energy_GeV"]["num_supports"],
+        _b["energy_GeV"]["num_bins"],
     )
     out["energy_GeV"]["log10_supports"] = np.log10(
         out["energy_GeV"]["supports"]
@@ -59,7 +59,7 @@ def make_explicit_binning(binning):
 
     out["azimuth_deg"] = {}
     out["azimuth_deg"]["edges"] = np.linspace(
-        0.0, 360.0, _b["azimuth_deg"]["num_supports"] + 1
+        0.0, 360.0, _b["azimuth_deg"]["num_bins"] + 1
     )
     out["azimuth_deg"]["supports"] = bin_centers(
         bin_edges=out["azimuth_deg"]["edges"]
@@ -69,7 +69,7 @@ def make_explicit_binning(binning):
     out["radius_m"]["supports"] = np.linspace(
         _b["radius_m"]["start_support"],
         _b["radius_m"]["stop_support"],
-        _b["radius_m"]["num_supports"],
+        _b["radius_m"]["num_bins"],
     )
 
     for key in ["altitude_m", "image_parallel_deg", "image_perpendicular_deg"]:
@@ -89,7 +89,7 @@ def xy_supports_on_observationlevel(binning):
     _eb = make_explicit_binning(binning=_b)
 
     xy_supports = np.zeros(
-        shape=(_b["azimuth_deg"]["num_supports"], _b["radius_m"]["num_supports"], 2)
+        shape=(_b["azimuth_deg"]["num_bins"], _b["radius_m"]["num_bins"], 2,)
     )
     radius_m_supports = _eb["radius_m"]["supports"]
     azimuth_deg_supports = _eb["azimuth_deg"]["supports"]
@@ -116,6 +116,9 @@ def find_bins(explicit_binning, energy_GeV, altitude_m, azimuth_deg, radius_m):
     )
     if azi["overflow"] or azi["underflow"]:
         raise IndexError("azimuth out of range")
+    num_azimuths_supports = len(_eb["azimuth_deg"]["supports"])
+    if azi["upper_bin"] == num_azimuths_supports:
+        azi["upper_bin"] = 0
 
     alt = find_bins_in_centers(
         bin_centers=_eb["altitude_m"]["supports"], value=altitude_m
