@@ -6,16 +6,14 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="airshower_template_generator",
-    version="0.0.0",
+    version="0.0.1",
     description="Generate Cherenkov-light-templates of cosmic-ray airshowers.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/cherenkov-plenoscope/airshower_template_generator.git",
     author="Sebastian Achim Mueller",
     author_email="sebastian-achim.mueller@mpi-hd.mpg.de",
-    packages=[
-        "airshower_template_generator",
-    ],
+    packages=["airshower_template_generator",],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
@@ -24,5 +22,11 @@ setuptools.setup(
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Physics",
         "Topic :: Scientific/Engineering :: Astronomy",
+    ],
+    install_requires=[
+        "corsika_primary_wrapper",
+        "plenoirf",
+        "queue_map_reduce",
+        "scipy",
     ],
 )

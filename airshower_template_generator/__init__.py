@@ -1,4 +1,5 @@
 from . import examples
+from . import bins
 
 import numpy as np
 import corsika_primary_wrapper as cpw
@@ -14,11 +15,6 @@ from queue_map_reduce import network_file_system as nfs
 from scipy import spatial
 import tarfile
 import gzip
-
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 
 def init(
@@ -36,7 +32,9 @@ def init(
     json_numpy.write(
         path=os.path.join(work_dir, "binning.json"), out_dict=binning
     )
-    json_numpy.write(path=os.path.join(work_dir, "run_config.json"), out_dict=run_config)
+    json_numpy.write(
+        path=os.path.join(work_dir, "run_config.json"), out_dict=run_config
+    )
 
 
 def make_jobs(work_dir):
@@ -47,12 +45,9 @@ def make_jobs(work_dir):
     binning = json_numpy.read(os.path.join(work_dir, "binning.json"))
     run_config = json_numpy.read(os.path.join(work_dir, "run_config.json"))
 
-    energy_bin_edges = np.geomspace(
-        binning["energy_GeV"]["start"],
-        binning["energy_GeV"]["stop"],
-        binning["energy_GeV"]["num_bins"] + 1,
-    )
-    energy_bin_centers = bin_centers(bin_edges=energy_bin_edges)
+    explicit_binning = bins.make_explicit_binning(binning=binning)
+    energy_bin_centers = explicit_binning["energy_GeV"]["centers"]
+
     assert image_pixels_are_square(binning=binning)
     jobs = []
     for site_key in sites:
@@ -87,14 +82,6 @@ def solid_angle_of_pixel_sr(binning):
     return pixel_edge_rad ** 2
 
 
-def bin_centers(bin_edges, weight_lower_edge=0.5):
-    assert weight_lower_edge >= 0.0 and weight_lower_edge <= 1.0
-    weight_upper_edge = 1.0 - weight_lower_edge
-    return (
-        weight_lower_edge * bin_edges[:-1] + weight_upper_edge * bin_edges[1:]
-    )
-
-
 def make_corsika_steering_card(
     site, particle, energy, num_airshower, random_seed
 ):
@@ -123,15 +110,6 @@ def make_corsika_steering_card(
         }
         steering["primaries"].append(primary)
     return steering
-
-
-def _find_bin_in_edges(bin_edges, value):
-    upper_bin_edge = int(np.digitize([value], bin_edges)[0])
-    if upper_bin_edge == 0:
-        return True, 0, False
-    if upper_bin_edge == bin_edges.shape[0]:
-        return False, upper_bin_edge - 1, True
-    return False, upper_bin_edge - 1, False
 
 
 def _project_to_image(
@@ -163,37 +141,6 @@ def image_pixels_are_square(binning):
     return np.abs(density_para / density_perp - 1.0) < 1e-6
 
 
-def _linspace(binning):
-    return np.linspace(
-        binning["start"],
-        binning["stop"],
-        binning["num_bins"],
-    )
-
-
-def _xy_supports(binning):
-    _b = binning
-    xy_supports = np.zeros(
-        shape=(_b["azimuth_deg"]["num_bins"], _b["radius_m"]["num_bins"], 2)
-    )
-    radius_m_supports = _linspace(_b["radius_m"])
-    azimuth_deg_supports = _linspace(_b["azimuth_deg"])
-    for azi, a_deg in enumerate(azimuth_deg_supports):
-        for rad, r_m in enumerate(radius_m_supports):
-            xy_supports[azi][rad][0] = np.cos(np.deg2rad(a_deg)) * r_m
-            xy_supports[azi][rad][1] = np.sin(np.deg2rad(a_deg)) * r_m
-    return xy_supports
-
-
-def _image_bin_edges_deg_para_perp(binning):
-    pa = binning["image_parallel_deg"]
-    pe = binning["image_perpendicular_deg"]
-    return (
-        np.linspace(pa["start"], pa["stop"], pa["num_bins"] + 1),
-        np.linspace(pe["start"], pe["stop"], pe["num_bins"] + 1),
-    )
-
-
 def append_tar(tar_obj, name, payload_bytes):
     with io.BytesIO() as f:
         f.write(payload_bytes)
@@ -208,17 +155,12 @@ def run_job(job):
     result_path = os.path.join(
         job["map_dir"], "{:06d}.tar".format(job["energy_job"])
     )
+    explbin = bins.make_explicit_binning(binning=job["binning"])
+    c_para_bin_edges = np.deg2rad(explbin["image_parallel_deg"]["edges"])
+    c_perp_bin_edges = np.deg2rad(explbin["image_perpendicular_deg"]["edges"])
+    altitude_bin_edges_m = explbin["altitude_m"]["edges"]
 
-    (
-        c_para_bin_edges_deg,
-        c_perp_bin_edges_deg,
-    ) = _image_bin_edges_deg_para_perp(job["binning"])
-    c_para_bin_edges = np.deg2rad(c_para_bin_edges_deg)
-    c_perp_bin_edges = np.deg2rad(c_perp_bin_edges_deg)
-
-    altitude_bin_edges_m = _linspace(job["binning"]["altitude_m"])
-
-    xy_supports = _xy_supports(job["binning"])
+    xy_supports = bins.xy_supports_on_observationlevel(binning=job["binning"])
 
     num_airshowers_to_be_thrown = int(
         np.ceil(
@@ -281,7 +223,7 @@ def run_job(job):
                 cherenkov_bunches[:, cpw.IZEM]
             )
 
-            underflow, altitude_bin, overflow = _find_bin_in_edges(
+            underflow, altitude_bin, overflow = bins.find_bin_in_edges(
                 value=airshower_maximum_altitude_asl_m,
                 bin_edges=altitude_bin_edges_m,
             )
@@ -509,9 +451,7 @@ def write_raw(raw_look_up, path):
             append_tar(
                 tar_obj=tar_obj,
                 name="num_airshowers.int64.gz",
-                payload_bytes=gzip.compress(
-                    data=num.tobytes(order="c"),
-                ),
+                payload_bytes=gzip.compress(data=num.tobytes(order="c"),),
             )
         nfs.move(src=tmp_path, dst=path)
 
@@ -546,39 +486,9 @@ def read_raw(path):
         raw = gzip.decompress(tar_obj.extractfile(tinfo).read())
         arr = np.frombuffer(raw, dtype=np.int64)
         arr = arr.reshape(
-            (
-                _b["energy_GeV"]["num_bins"],
-                _b["altitude_m"]["num_bins"],
-            ),
+            (_b["energy_GeV"]["num_bins"], _b["altitude_m"]["num_bins"],),
             order="c",
         )
         out["num_airshowers"] = arr
+    out["explicit_binning"] = bins.make_explicit_binning(out["binning"])
     return out
-
-
-def plot_views(views, config):
-
-    (
-        c_para_bin_edges_deg,
-        c_perp_bin_edges_deg,
-    ) = _image_bin_edges_deg_para_perp(config["binning"])
-
-    for azi in range(config["binning"]["azimuth_deg"]["num_bins"]):
-        for rad in range(config["binning"]["radius_m"]["num_bins"]):
-            for alt in range(config["binning"]["altitude_m"]["num_bins"]):
-
-                fig = plt.figure()
-                ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-                ax.pcolormesh(
-                    c_para_bin_edges_deg,
-                    c_perp_bin_edges_deg,
-                    views[azi, rad, alt].T,
-                    cmap="inferno",
-                )
-                ax.set_aspect("equal")
-                ax.set_xlabel("c para / deg")
-                ax.set_ylabel("c perp / deg")
-                fig.savefig(
-                    "{:03d}_{:03d}_{:03d}_img.jpg".format(azi, rad, alt)
-                )
-                plt.close(fig)

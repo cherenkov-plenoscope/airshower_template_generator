@@ -11,25 +11,30 @@ SITES = {
 }
 
 PARTICLES = {
-    "gamma": {
-        "particle_id": 1,
-    },
+    "gamma": {"particle_id": 1,},
 }
 
 BINNING = {
-    "energy_GeV": {"start": 1e0, "stop": 2e0, "num_bins": 3},
-    "azimuth_deg": {"start": 0.0, "stop": 240.0, "num_bins": 3},
-    "radius_m": {"start": 0.0, "stop": 250.0, "num_bins": 25},
-    "altitude_m": {"start": 5e3, "stop": 30e3, "num_bins": 25},
+    "energy_GeV": {"start": 1e0, "stop": 2e0, "num_bins": 3, "space": "geom"},
+    "azimuth_deg": {
+        "start": -60.0,
+        "stop": 300.0,
+        "num_bins": 3,
+        "space": "lin",
+    },
+    "radius_m": {"start": 0.0, "stop": 250.0, "num_bins": 25, "space": "lin"},
+    "altitude_m": {"start": 5e3, "stop": 30e3, "num_bins": 25, "space": "lin"},
     "image_parallel_deg": {
         "start": -0.5,
         "stop": 2.5,
         "num_bins": 96,
+        "space": "lin",
     },
     "image_perpendicular_deg": {
         "start": -0.5,
         "stop": 0.5,
         "num_bins": 32,
+        "space": "lin",
     },
     "aperture_radius_m": 8.0,
 }
