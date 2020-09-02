@@ -1,5 +1,6 @@
 from . import examples
 from . import bins
+from . import query
 
 import numpy as np
 import corsika_primary_wrapper as cpw
@@ -46,13 +47,15 @@ def make_jobs(work_dir):
     run_config = json_numpy.read(os.path.join(work_dir, "run_config.json"))
 
     explicit_binning = bins.make_explicit_binning(binning=binning)
-    energy_bin_centers = explicit_binning["energy_GeV"]["centers"]
+    energy_bin_supports = explicit_binning["energy_GeV"]["supports"]
 
+    az = binning["azimuth_deg"]
+    assert np.abs(az["stop"] - az["start"] - 360.0) < 1e-6
     assert image_pixels_are_square(binning=binning)
     jobs = []
     for site_key in sites:
         for particle_key in particles:
-            for energy_bin, energy_GeV in enumerate(energy_bin_centers):
+            for energy_bin, energy_GeV in enumerate(energy_bin_supports):
                 energy_key = "energy_bin_{:06d}".format(energy_bin)
                 for energy_job in range(run_config["num_jobs_in_energy_bin"]):
                     job = {}
@@ -351,7 +354,6 @@ def reduce(work_dir):
                     cer[energy_bin] += result["num_cherenkov_photons"]
                     num_airshowers[energy_bin] += result["num_airshowers"]
 
-            """
             # normalize
             # =========
 
@@ -360,23 +362,26 @@ def reduce(work_dir):
             num_para = binning["image_parallel_deg"]["num_bins"]
             num_perp = binning["image_perpendicular_deg"]["num_bins"]
 
+            nan_img = np.nan * np.ones(shape=(num_para, num_perp))
+
             for ene in range(binning["energy_GeV"]["num_bins"]):
                 for azi in range(binning["azimuth_deg"]["num_bins"]):
                     for rad in range(binning["radius_m"]["num_bins"]):
                         for alt in range(binning["altitude_m"]["num_bins"]):
                             num = num_airshowers[ene, alt]
                             if num > 0:
-                                cer[ene, azi, rad, alt] /= num
-                                cer[ene, azi, rad, alt] /= aperture_area_m2
-                                cer[ene, azi, rad, alt] /= pixel_solid_angle_sr
-                            else:
-                                cer[ene, azi, rad, alt] = np.nan * np.ones(
-                                    shape=(num_para, num_perp)
+                                norm_factor = (
+                                    num
+                                    * aperture_area_m2
+                                    * pixel_solid_angle_sr
                                 )
-            """
+                                cer[ene, azi, rad, alt] /= norm_factor
+                            else:
+                                cer[ene, azi, rad, alt] = nan_img
+
             out = {
                 "binning": binning,
-                "num_cherenkov_photons": cer,
+                "cherenkov_photon_density": cer,
                 "num_airshowers": num_airshowers,
             }
             reduce_site_particle_dir = os.path.join(
@@ -420,7 +425,7 @@ def read_map_result(path):
 
 
 def write_raw(raw_look_up, path):
-    cer = raw_look_up["num_cherenkov_photons"]
+    cer = raw_look_up["cherenkov_photon_density"]
     _b = raw_look_up["binning"]
     assert cer.dtype == np.float32
     assert cer.shape[0] == _b["energy_GeV"]["num_bins"]
@@ -445,7 +450,7 @@ def write_raw(raw_look_up, path):
             )
             append_tar(
                 tar_obj=tar_obj,
-                name="num_cherenkov_photons.order-c.float32.gz",
+                name="cherenkov_photon_density.order-c.float32.gz",
                 payload_bytes=gzip.compress(data=cer.tobytes(order="c")),
             )
             append_tar(
@@ -465,7 +470,7 @@ def read_raw(path):
         _b = out["binning"]
 
         tinfo = tar_obj.next()
-        assert tinfo.name == "num_cherenkov_photons.order-c.float32.gz"
+        assert tinfo.name == "cherenkov_photon_density.order-c.float32.gz"
         raw = gzip.decompress(tar_obj.extractfile(tinfo).read())
         arr = np.frombuffer(raw, dtype=np.float32)
         arr = arr.reshape(
@@ -479,7 +484,7 @@ def read_raw(path):
             ),
             order="c",
         )
-        out["num_cherenkov_photons"] = arr
+        out["cherenkov_photon_density"] = arr
 
         tinfo = tar_obj.next()
         assert tinfo.name == "num_airshowers.int64.gz"

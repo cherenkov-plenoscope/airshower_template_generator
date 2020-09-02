@@ -15,28 +15,29 @@ PARTICLES = {
 }
 
 BINNING = {
-    "energy_GeV": {"start": 1e0, "stop": 2e0, "num_bins": 3, "space": "geom"},
-    "azimuth_deg": {
-        "start": -60.0,
-        "stop": 300.0,
-        "num_bins": 3,
-        "space": "lin",
+    "energy_GeV": {
+        "start_support": 1e0,
+        "stop_support": 2e0,
+        "num_supports": 3,
     },
-    "radius_m": {"start": 0.0, "stop": 250.0, "num_bins": 25, "space": "lin"},
-    "altitude_m": {"start": 5e3, "stop": 30e3, "num_bins": 25, "space": "lin"},
+    "azimuth_deg": {"num_supports": 3},
+    "radius_m": {
+        "start_support": 0.0,
+        "stop_support": 250.0,
+        "num_supports": 25,
+    },
+    "altitude_m": {"start_edge": 5e3, "stop_edge": 30e3, "num_bins": 25},
     "image_parallel_deg": {
-        "start": -0.5,
-        "stop": 2.5,
+        "start_edge": -0.5,
+        "stop_edge": 2.5,
         "num_bins": 96,
-        "space": "lin",
     },
     "image_perpendicular_deg": {
-        "start": -0.5,
-        "stop": 0.5,
+        "start_edge": -0.5,
+        "stop_edge": 0.5,
         "num_bins": 32,
-        "space": "lin",
     },
-    "aperture_radius_m": 8.0,
+    "aperture_radius_m": 5.0,
 }
 
 RUN_CONFIG = {
