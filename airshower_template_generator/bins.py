@@ -89,10 +89,10 @@ def xy_supports_on_observationlevel(binning):
     _eb = make_explicit_binning(binning=_b)
 
     xy_supports = np.zeros(
-        shape=(_b["azimuth_deg"]["num_bins"], _b["radius_m"]["num_bins"], 2)
+        shape=(_b["azimuth_deg"]["num_supports"], _b["radius_m"]["num_supports"], 2)
     )
-    radius_m_supports = _eb["radius_m"]["centers"]
-    azimuth_deg_supports = _eb["azimuth_deg"]["centers"]
+    radius_m_supports = _eb["radius_m"]["supports"]
+    azimuth_deg_supports = _eb["azimuth_deg"]["supports"]
     for azi, a_deg in enumerate(azimuth_deg_supports):
         for rad, r_m in enumerate(radius_m_supports):
             xy_supports[azi][rad][0] = np.cos(np.deg2rad(a_deg)) * r_m

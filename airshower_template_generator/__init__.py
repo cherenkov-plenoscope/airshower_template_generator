@@ -185,8 +185,8 @@ def run_job(job):
     num_overflow = 0
     views = np.zeros(
         shape=(
-            job["binning"]["azimuth_deg"]["num_bins"],
-            job["binning"]["radius_m"]["num_bins"],
+            job["binning"]["azimuth_deg"]["num_supports"],
+            job["binning"]["radius_m"]["num_supports"],
             job["binning"]["altitude_m"]["num_bins"],
             job["binning"]["image_parallel_deg"]["num_bins"],
             job["binning"]["image_perpendicular_deg"]["num_bins"],
@@ -254,11 +254,11 @@ def run_job(job):
                 ]
             )
 
-            for azi in range(job["binning"]["azimuth_deg"]["num_bins"]):
+            for azi in range(job["binning"]["azimuth_deg"]["num_supports"]):
                 meets = xy_tree.query_ball_point(
                     x=xy_supports[azi], r=job["binning"]["aperture_radius_m"]
                 )
-                for rad in range(job["binning"]["radius_m"]["num_bins"]):
+                for rad in range(job["binning"]["radius_m"]["num_supports"]):
                     view = cherenkov_bunches[meets[rad], :]
                     img = _project_to_image(
                         cxs=view[:, cpw.ICX],
@@ -405,8 +405,8 @@ def read_map_result(path):
         arr = np.frombuffer(raw, dtype=np.float32)
         arr = arr.reshape(
             (
-                _b["azimuth_deg"]["num_bins"],
-                _b["radius_m"]["num_bins"],
+                _b["azimuth_deg"]["num_supports"],
+                _b["radius_m"]["num_supports"],
                 _b["altitude_m"]["num_bins"],
                 _b["image_parallel_deg"]["num_bins"],
                 _b["image_perpendicular_deg"]["num_bins"],
@@ -427,15 +427,15 @@ def write_raw(raw_look_up, path):
     cer = raw_look_up["cherenkov_photon_density"]
     _b = raw_look_up["binning"]
     assert cer.dtype == np.float32
-    assert cer.shape[0] == _b["energy_GeV"]["num_bins"]
-    assert cer.shape[1] == _b["azimuth_deg"]["num_bins"]
-    assert cer.shape[2] == _b["radius_m"]["num_bins"]
+    assert cer.shape[0] == _b["energy_GeV"]["num_supports"]
+    assert cer.shape[1] == _b["azimuth_deg"]["num_supports"]
+    assert cer.shape[2] == _b["radius_m"]["num_supports"]
     assert cer.shape[3] == _b["altitude_m"]["num_bins"]
     assert cer.shape[4] == _b["image_parallel_deg"]["num_bins"]
     assert cer.shape[5] == _b["image_perpendicular_deg"]["num_bins"]
     num = raw_look_up["num_airshowers"]
     assert num.dtype == np.int64
-    assert num.shape[0] == _b["energy_GeV"]["num_bins"]
+    assert num.shape[0] == _b["energy_GeV"]["num_supports"]
     assert num.shape[1] == _b["altitude_m"]["num_bins"]
     with tempfile.TemporaryDirectory(prefix="atg_") as tmp_dir:
         tmp_path = os.path.join(tmp_dir, "raw_look_up.tar")
@@ -474,9 +474,9 @@ def read_raw(path):
         arr = np.frombuffer(raw, dtype=np.float32)
         arr = arr.reshape(
             (
-                _b["energy_GeV"]["num_bins"],
-                _b["azimuth_deg"]["num_bins"],
-                _b["radius_m"]["num_bins"],
+                _b["energy_GeV"]["num_supports"],
+                _b["azimuth_deg"]["num_supports"],
+                _b["radius_m"]["num_supports"],
                 _b["altitude_m"]["num_bins"],
                 _b["image_parallel_deg"]["num_bins"],
                 _b["image_perpendicular_deg"]["num_bins"],
@@ -490,7 +490,7 @@ def read_raw(path):
         raw = gzip.decompress(tar_obj.extractfile(tinfo).read())
         arr = np.frombuffer(raw, dtype=np.int64)
         arr = arr.reshape(
-            (_b["energy_GeV"]["num_bins"], _b["altitude_m"]["num_bins"],),
+            (_b["energy_GeV"]["num_supports"], _b["altitude_m"]["num_bins"],),
             order="c",
         )
         out["num_airshowers"] = arr
