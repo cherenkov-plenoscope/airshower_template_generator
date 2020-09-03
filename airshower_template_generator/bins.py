@@ -22,7 +22,6 @@ def find_bins_in_centers(bin_centers, value):
         lower_weight = 1.0
     else:
         dist_to_lower = value - bin_centers[lower_bin]
-        dist_to_upper = bin_centers[upper_bin] - value
         bin_range = bin_centers[upper_bin] - bin_centers[lower_bin]
         lower_weight = 1 - dist_to_lower / bin_range
 
@@ -108,14 +107,14 @@ def find_bins(explicit_binning, energy_GeV, altitude_m, azimuth_deg, radius_m):
         value=np.log10(energy_GeV),
     )
     if ene["overflow"] or ene["underflow"]:
-        raise IndexError("energy out of range")
+        raise IndexError("energy {:.3e}GeV out of range".format(energy_GeV))
 
     azi = find_bins_in_centers(
         bin_centers=_eb["azimuth_deg"]["edges"],
         value=modulo_azimuth_range(azimuth_deg=azimuth_deg),
     )
     if azi["overflow"] or azi["underflow"]:
-        raise IndexError("azimuth out of range")
+        raise IndexError("azimuth {:.3e}deg out of range".format(azimuth_deg))
     num_azimuths_supports = len(_eb["azimuth_deg"]["supports"])
     if azi["upper_bin"] == num_azimuths_supports:
         azi["upper_bin"] = 0
@@ -124,13 +123,13 @@ def find_bins(explicit_binning, energy_GeV, altitude_m, azimuth_deg, radius_m):
         bin_centers=_eb["altitude_m"]["supports"], value=altitude_m
     )
     if alt["overflow"] or alt["underflow"]:
-        raise IndexError("altitude out of range")
+        raise IndexError("altitude {:.3e}m out of range".format(altitude_m))
 
     rad = find_bins_in_centers(
         bin_centers=_eb["radius_m"]["supports"], value=radius_m
     )
     if rad["overflow"] or rad["underflow"]:
-        raise IndexError("radius out of range")
+        raise IndexError("radius {:.3e}m out of range".format(radius_m))
 
     return {
         "energy_GeV": [

@@ -101,7 +101,6 @@ def write_view(
 
     figsize = (16, 9)
     dpi = 120
-    img_height = 0.5
 
     fig = plt.figure(figsize=figsize, dpi=dpi)
     ax_img = fig.add_axes(

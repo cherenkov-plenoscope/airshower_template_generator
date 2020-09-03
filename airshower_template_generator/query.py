@@ -41,8 +41,9 @@ def query_image(lut, energy_GeV, altitude_m, azimuth_deg, radius_m):
 
 def benchmark(lut, num_queries=1000):
     _b = lut["binning"]
+    _eb = lut["explicit_binning"]
     request = 0
-    while request < num_requests:
+    while request < num_queries:
         energy_GeV = np.random.uniform(
             low=_b["energy_GeV"]["start_support"],
             high=_b["energy_GeV"]["stop_support"],
@@ -50,8 +51,8 @@ def benchmark(lut, num_queries=1000):
         )[0]
 
         altitude_m = np.random.uniform(
-            low=_b["altitude_m"]["start_edge"],
-            high=_b["altitude_m"]["stop_edge"],
+            low=_eb["altitude_m"]["supports"][0],
+            high=_eb["altitude_m"]["supports"][-1],
             size=1,
         )[0]
 
@@ -63,7 +64,7 @@ def benchmark(lut, num_queries=1000):
             size=1,
         )[0]
 
-        image = query_image(
+        _ = query_image(
             lut=lut,
             energy_GeV=energy_GeV,
             altitude_m=altitude_m,
