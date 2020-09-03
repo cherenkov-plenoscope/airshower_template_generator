@@ -1,12 +1,41 @@
+from . import query
+from . import bins
+
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 import matplotlib
-from . import query
-from . import bins
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
+
+def write_image(path, binning, image):
+    _b = binning
+    explbins = bins.make_explicit_binning(_b)
+    w_deg = (
+        _b["image_parallel_deg"]["stop_edge"]
+        - _b["image_parallel_deg"]["start_edge"]
+    )
+    h_deg = (
+        _b["image_perpendicular_deg"]["stop_edge"]
+        - _b["image_perpendicular_deg"]["start_edge"]
+    )
+    w = 0.8
+    h = h_deg / w_deg * w * 16 / 9
+    fig = plt.figure(figsize=(16, 9), dpi=120)
+    ax = fig.add_axes([0.1, 0.1, w, h])
+    ax.set_title("{:.3e} ph".format(np.sum(image)))
+    ax.pcolor(
+        explbins["image_parallel_deg"]["edges"],
+        explbins["image_perpendicular_deg"]["edges"],
+        image.T,
+        cmap="inferno",
+    )
+    ax.grid(color="white", linestyle="-", linewidth=0.66, alpha=0.3)
+    ax.set_xlabel("radial / $^{\\circ}$")
+    plt.savefig(path)
+    plt.close(fig)
 
 
 def axis_size(x_start, x_stop, y_start, y_stop, figsize, dpi):
