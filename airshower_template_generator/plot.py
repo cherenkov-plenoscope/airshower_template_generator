@@ -8,9 +8,6 @@ from . import bins
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-r2d = np.rad2deg
-d2r = np.deg2rad
-
 
 def axis_size(x_start, x_stop, y_start, y_stop, figsize, dpi):
     num_cols = figsize[0] * dpi
@@ -96,8 +93,8 @@ def write_view(
     aperture_radius_m = _b["aperture_radius_m"]
     max_core_radius = _b["radius_m"]["stop_support"]
 
-    aperture_x = radius_m * np.cos(d2r(azimuth_deg))
-    aperture_y = radius_m * np.sin(d2r(azimuth_deg))
+    aperture_x = radius_m * np.cos(np.deg2rad(azimuth_deg))
+    aperture_y = radius_m * np.sin(np.deg2rad(azimuth_deg))
 
     energy_bin_centers = explbins["energy_GeV"]["supports"]
     altitude_bin_edges = explbins["altitude_m"]["edges"]
