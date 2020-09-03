@@ -245,7 +245,6 @@ def run_job(job):
                 num_airshowers_in_altitude_bins[altitude_bin]
                 >= max_num_airshower_to_collect_in_altitude_bin
             ):
-                # print("full")
                 continue
 
             num_airshowers_in_altitude_bins[altitude_bin] += 1
@@ -350,6 +349,7 @@ def reduce(work_dir):
 
                 tmpl = os.path.join(map_site_particle_energy_dir, "*.tar")
                 for result_path in glob.glob(tmpl):
+                    print(result_path)
 
                     result = read_map_result(result_path)
 

@@ -118,7 +118,7 @@ def write_view(
     )
     rm_splines(ax=ax_img)
     ax_img.grid(color="white", linestyle="-", linewidth=0.66, alpha=0.3)
-    ax_img.set_xlabel("radial / deg")
+    ax_img.set_xlabel("radial / $^{\\circ}$")
     ax_img.set_yticks(np.linspace(-0.5, 0.5, 5))
     ax_img.set_xticks(np.linspace(-0.5, 2.5, 13))
 
@@ -148,7 +148,9 @@ def write_view(
     ax_ap_text.set_axis_off()
     ax_ap_text.text(0.1, 1.0, "x {:0.1f}m".format(aperture_x))
     ax_ap_text.text(0.1, 0.9, "y {:0.1f}m".format(aperture_y))
-    ax_ap_text.text(0.1, 0.7, "azimuth {:0.1f}deg".format(azimuth_deg))
+    ax_ap_text.text(
+        0.1, 0.7, "azimuth {:0.1f}$^{{\\circ}}$".format(azimuth_deg)
+    )
     ax_ap_text.text(0.1, 0.6, "radius {:0.1f}m".format(radius_m))
     ax_ap_text.text(
         0.1, 0.5, "apertur-radius {:0.1f}m".format(aperture_radius_m)
@@ -156,37 +158,38 @@ def write_view(
     ax_ap_text.text(
         0.1,
         0.3,
-        "azimuth-bin [{:d}, {:d}]".format(
+        "azimuth-bin [{: 3d}, {: 3d}]".format(
             b["azimuth_deg"][0]["bin"], b["azimuth_deg"][1]["bin"],
         ),
     )
     ax_ap_text.text(
         0.1,
         0.2,
-        "radius-bin [{:d}, {:d}]".format(
+        "radius-bin [{: 3d}, {: 3d}]".format(
             b["radius_m"][0]["bin"], b["radius_m"][1]["bin"],
         ),
     )
     ax_ap_text.text(
         0.1,
         0.1,
-        "energy-bin [{:d}, {:d}]".format(
+        "energy-bin [{: 3d}, {: 3d}]".format(
             b["energy_GeV"][0]["bin"], b["energy_GeV"][1]["bin"],
         ),
     )
     ax_ap_text.text(
         0.1,
         0.0,
-        "altitude-bin [{:d}, {:d}]".format(
+        "altitude-bin [{: 3d}, {: 3d}]".format(
             b["altitude_m"][0]["bin"], b["altitude_m"][1]["bin"],
         ),
     )
 
+    # energy-altitude-population
+    # --------------------------
     ax_population = fig.add_axes(
-        axis_size(680, 680 + 330, 75, 75 + 330, figsize, dpi)
+        axis_size(880, 880 + 330, 75, 75 + 330, figsize, dpi)
     )
     rm_splines(ax=ax_population)
-
     ax_population.pcolor(lookup_population_pos.T, cmap="binary", vmax=1.0)
     ax_population.set_xlabel("energy-bins")
     ax_population.set_ylabel("altitude-bins")
@@ -197,7 +200,31 @@ def write_view(
     ax_population.set_yticklabels([])
     ax_population.grid(color="k", linestyle="-", linewidth=0.66, alpha=0.3)
 
-    ax_size = fig.add_axes(axis_size(1100, 1150, 75, 75 + 330, figsize, dpi))
+    # azimuth-radius-population
+    # -------------------------
+    az_ra_popu = np.zeros(
+        shape=(_b["azimuth_deg"]["num_bins"], _b["radius_m"]["num_bins"])
+    )
+    for azi in b["azimuth_deg"]:
+        for rad in b["radius_m"]:
+            az_ra_popu[azi["bin"], rad["bin"]] += (
+                0.9 * (azi["weight"] + rad["weight"]) / 2
+            )
+    ax_az_ra_popu = fig.add_axes(
+        axis_size(680, 680 + 60, 75, 75 + 330, figsize, dpi)
+    )
+    rm_splines(ax=ax_az_ra_popu)
+    ax_az_ra_popu.pcolor(az_ra_popu.T, cmap="binary", vmax=1.0)
+    ax_az_ra_popu.set_xlabel("azimuth-bins")
+    ax_az_ra_popu.set_ylabel("radius-bins")
+
+    ax_az_ra_popu.set_xticks(np.arange(_b["azimuth_deg"]["num_bins"]))
+    ax_az_ra_popu.set_yticks(np.arange(_b["radius_m"]["num_bins"]))
+    ax_az_ra_popu.set_xticklabels([])
+    ax_az_ra_popu.set_yticklabels([])
+    ax_az_ra_popu.grid(color="k", linestyle="-", linewidth=0.66, alpha=0.3)
+
+    ax_size = fig.add_axes(axis_size(1300, 1350, 75, 75 + 330, figsize, dpi))
     add_slider_axes(
         ax=ax_size,
         start=1e3,
@@ -210,7 +237,7 @@ def write_view(
     )
 
     ax_altitude_slider = fig.add_axes(
-        axis_size(1250, 1300, 75, 75 + 330, figsize, dpi)
+        axis_size(1450, 1500, 75, 75 + 330, figsize, dpi)
     )
     add_slider_axes(
         ax=ax_altitude_slider,
@@ -218,11 +245,11 @@ def write_view(
         stop=altitude_bin_edges[-1] * 1e-3,
         value=altitude_m * 1e-3,
         log=False,
-        label="altitude / km\n{:.1f}km".format(altitude_m * 1e-3),
+        label="altitude / km\n{:.1f}".format(altitude_m * 1e-3),
     )
 
     ax_energy_slider = fig.add_axes(
-        axis_size(1400, 1920 - 475, 75, 75 + 330, figsize, dpi)
+        axis_size(1600, 1920 - 275, 75, 75 + 330, figsize, dpi)
     )
     add_slider_axes(
         ax=ax_energy_slider,
@@ -230,7 +257,7 @@ def write_view(
         stop=energy_bin_centers[-1],
         value=energy_GeV,
         log=True,
-        label="energy / GeV\n{:.1f}GeV".format(energy_GeV),
+        label="energy / GeV\n{:.1f}".format(energy_GeV),
     )
     fig.savefig(path)
     plt.close(fig)
@@ -259,15 +286,14 @@ def move_linear(view_stations, num_steps_per_station=60):
 def example_view_path():
     p = []
     p.append([0.5, 12.5e3, 0.0, 0.0])
-    p.append([0.5, 12.5e3, 0.0, 350.0])
+    p.append([0.5, 12.5e3, 0.0, 250.0])
     p.append([0.5, 12.5e3, 0.0, 75.0])
     p.append([20.0, 12.5e3, 0.0, 75.0])
     p.append([20.0, 7.5e3, 0.0, 75.0])
     p.append([20.0, 12.5e3, 0.0, 75.0])
     p.append([5.0, 12.5e3, 0.0, 75.0])
-    p.append([5.0, 12.5e3, 270.0, 75.0])
+    p.append([5.0, 12.5e3, 360.0, 290.0])
     p.append([5.0, 12.5e3, 0.0, 75.0])
-    p.append([5.0, 12.5e3, 0.0, 110.0])
     p.append([5.0, 15.5e3, 0.0, 75.0])
     p.append([5.0, 10.5e3, 0.0, 75.0])
     p.append([0.5, 12.5e3, 0.0, 0.0])

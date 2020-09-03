@@ -108,11 +108,7 @@ def test_finding_bin_index_in_circular():
 
 
 binning = {
-    "energy_GeV": {
-        "start_support": 1e0,
-        "stop_support": 1e3,
-        "num_bins": 3,
-    },
+    "energy_GeV": {"start_support": 1e0, "stop_support": 1e3, "num_bins": 3,},
     "azimuth_deg": {"num_bins": 3},
     "radius_m": {"start_support": 0.0, "stop_support": 3.0, "num_bins": 4},
     "altitude_m": {"start_edge": 0, "stop_edge": 30e3, "num_bins": 3},
