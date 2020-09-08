@@ -71,7 +71,12 @@ def make_explicit_binning(binning):
         _b["radius_m"]["num_bins"],
     )
 
-    for key in ["altitude_m", "image_parallel_deg", "image_perpendicular_deg"]:
+    for key in [
+        "altitude_m",
+        "image_parallel_deg",
+        "image_perpendicular_deg",
+        "time_s",
+    ]:
         out[key] = {}
         out[key]["edges"] = np.linspace(
             _b[key]["start_edge"],

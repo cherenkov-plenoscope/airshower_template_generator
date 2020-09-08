@@ -73,18 +73,28 @@ def make_jobs(work_dir):
     return jobs
 
 
+def parallel_pixel_width_rad(binning):
+    para = binning["image_parallel_deg"]
+    pixel_edge_deg = (para["stop_edge"] - para["start_edge"]) / para[
+        "num_bins"
+    ]
+    return np.deg2rad(pixel_edge_deg)
+
+
 def area_of_aperture_m2(binning):
     return np.pi * binning["aperture_radius_m"] ** 2
 
 
 def solid_angle_of_pixel_sr(binning):
-    assert image_pixels_are_square(binning)
-    para = binning["image_parallel_deg"]
-    pixel_edge_deg = (para["stop_edge"] - para["start_edge"]) / para[
-        "num_bins"
-    ]
-    pixel_edge_rad = np.deg2rad(pixel_edge_deg)
+    assert image_pixels_are_square(binning=binning)
+    pixel_edge_rad = parallel_pixel_width_rad(binning=binning)
     return pixel_edge_rad ** 2
+
+
+def time_slice_duration_s(binning):
+    tim = binning["time_s"]
+    duration_s = (tim["stop_edge"] - tim["start_edge"]) / tim["num_bins"]
+    return duration_s
 
 
 def make_corsika_steering_card(
@@ -120,22 +130,32 @@ def make_corsika_steering_card(
 def _project_to_image(
     cxs,
     cys,
+    relative_time,
     bunch_size,
     c_para_bin_edges,
     c_perp_bin_edges,
+    time_bin_edges,
     aperture_x,
     aperture_y,
 ):
     azimuth = np.arctan2(aperture_y, aperture_x)
     c_para = np.cos(-azimuth) * cxs - np.sin(-azimuth) * cys
     c_perp = np.sin(-azimuth) * cxs + np.cos(-azimuth) * cys
-    hist = np.histogram2d(
+    image = np.histogram2d(
         x=c_para,
         y=c_perp,
         weights=bunch_size,
         bins=(c_para_bin_edges, c_perp_bin_edges),
     )[0]
-    return hist
+
+    time_image = np.histogram2d(
+        x=c_para,
+        y=relative_time,
+        weights=bunch_size,
+        bins=(c_para_bin_edges, time_bin_edges),
+    )[0]
+
+    return image, time_image
 
 
 def image_pixels_are_square(binning):
@@ -155,6 +175,12 @@ def append_tar(tar_obj, name, payload_bytes):
         tar_obj.addfile(tarinfo=tarinfo, fileobj=f)
 
 
+def zeros(binning, keys=[], dtype=np.float32):
+    return np.zeros(
+        shape=[binning[key]["num_bins"] for key in keys], dtype=dtype,
+    )
+
+
 def run_job(job):
     os.makedirs(job["map_dir"], exist_ok=True)
     result_path = os.path.join(
@@ -163,6 +189,7 @@ def run_job(job):
     explbin = bins.make_explicit_binning(binning=job["binning"])
     c_para_bin_edges = np.deg2rad(explbin["image_parallel_deg"]["edges"])
     c_perp_bin_edges = np.deg2rad(explbin["image_perpendicular_deg"]["edges"])
+    time_bin_edges = explbin["time_s"]["edges"]
     altitude_bin_edges_m = explbin["altitude_m"]["edges"]
 
     xy_supports = bins.xy_supports_on_observationlevel(binning=job["binning"])
@@ -186,15 +213,26 @@ def run_job(job):
     )
     num_underflow = 0
     num_overflow = 0
-    views = np.zeros(
-        shape=(
-            job["binning"]["azimuth_deg"]["num_bins"],
-            job["binning"]["radius_m"]["num_bins"],
-            job["binning"]["altitude_m"]["num_bins"],
-            job["binning"]["image_parallel_deg"]["num_bins"],
-            job["binning"]["image_perpendicular_deg"]["num_bins"],
-        ),
-        dtype=np.float32,
+
+    views = zeros(
+        keys=[
+            "azimuth_deg",
+            "radius_m",
+            "altitude_m",
+            "image_parallel_deg",
+            "image_perpendicular_deg",
+        ],
+        binning=job["binning"],
+    )
+    tiews = zeros(
+        keys=[
+            "azimuth_deg",
+            "radius_m",
+            "altitude_m",
+            "image_parallel_deg",
+            "time_s",
+        ],
+        binning=job["binning"],
     )
 
     steering_dict = make_corsika_steering_card(
@@ -256,22 +294,45 @@ def run_job(job):
                 ]
             )
 
+            arrival_time_ns = np.array(cherenkov_bunches[:, cpw.ITIME])
+
             for azi in range(job["binning"]["azimuth_deg"]["num_bins"]):
                 meets = xy_tree.query_ball_point(
                     x=xy_supports[azi], r=job["binning"]["aperture_radius_m"]
                 )
+
+                sourrounding_meets = xy_tree.query_ball_point(
+                    x=xy_supports[azi],
+                    r=10.0 * job["binning"]["aperture_radius_m"],
+                )
+
                 for rad in range(job["binning"]["radius_m"]["num_bins"]):
-                    view = cherenkov_bunches[meets[rad], :]
-                    img = _project_to_image(
-                        cxs=view[:, cpw.ICX],
-                        cys=view[:, cpw.ICY],
-                        bunch_size=view[:, cpw.IBSIZE],
-                        c_para_bin_edges=c_para_bin_edges,
-                        c_perp_bin_edges=c_perp_bin_edges,
-                        aperture_x=xy_supports[azi][rad][0],
-                        aperture_y=xy_supports[azi][rad][1],
+
+                    num_cherenkov_photons_in_sourrounding = len(
+                        sourrounding_meets[rad]
                     )
-                    views[azi][rad][altitude_bin] += img
+
+                    if num_cherenkov_photons_in_sourrounding > 0:
+
+                        med_time_ns = np.median(
+                            arrival_time_ns[sourrounding_meets[rad]]
+                        )
+
+                        view = cherenkov_bunches[meets[rad], :]
+                        img, timg = _project_to_image(
+                            cxs=view[:, cpw.ICX],
+                            cys=view[:, cpw.ICY],
+                            relative_time=(view[:, cpw.ITIME] - med_time_ns)
+                            * 1e-9,
+                            bunch_size=view[:, cpw.IBSIZE],
+                            c_para_bin_edges=c_para_bin_edges,
+                            c_perp_bin_edges=c_perp_bin_edges,
+                            time_bin_edges=time_bin_edges,
+                            aperture_x=xy_supports[azi][rad][0],
+                            aperture_y=xy_supports[azi][rad][1],
+                        )
+                        views[azi][rad][altitude_bin] += img
+                        tiews[azi][rad][altitude_bin] += timg
 
         tmp_result_path = os.path.join(tmp_dir, "result.tar")
         with tarfile.TarFile(tmp_result_path, "w") as tar_obj:
@@ -284,12 +345,17 @@ def run_job(job):
             )
             append_tar(
                 tar_obj=tar_obj,
-                name="num_cherenkov_photons.order-c.float32.gz",
+                name="cherenkov.histogram.azi_rad_alt_par_per.order-c.float32.gz",
                 payload_bytes=gzip.compress(data=views.tobytes(order="c")),
             )
             append_tar(
                 tar_obj=tar_obj,
-                name="num_airshowers.int64.gz",
+                name="cherenkov.histogram.azi_rad_alt_par_tim.order-c.float32.gz",
+                payload_bytes=gzip.compress(data=tiews.tobytes(order="c")),
+            )
+            append_tar(
+                tar_obj=tar_obj,
+                name="airshower.histogram.alt.int64.gz",
                 payload_bytes=gzip.compress(
                     data=num_airshowers_in_altitude_bins.tobytes(order="c"),
                 ),
@@ -312,6 +378,57 @@ def run_job(job):
         return 1
 
 
+def _tar_read_and_reshape(tar_obj, name, shape, dtype=np.float32, order="c"):
+    tinfo = tar_obj.next()
+    assert tinfo.name == name
+    raw = gzip.decompress(tar_obj.extractfile(tinfo).read())
+    arr = np.frombuffer(raw, dtype=dtype)
+    arr = arr.reshape(shape, order=order)
+    return arr
+
+
+def read_map_result(path):
+    out = {}
+    with tarfile.TarFile(path, "r") as tar_obj:
+
+        tinfo = tar_obj.next()
+        assert tinfo.name == "job.json"
+        out["job"] = json.loads(tar_obj.extractfile(tinfo).read())
+        _b = out["job"]["binning"]
+
+        out["cherenkov.histogram.azi_rad_alt_par_per"] = _tar_read_and_reshape(
+            tar_obj=tar_obj,
+            name="cherenkov.histogram.azi_rad_alt_par_per.order-c.float32.gz",
+            shape=(
+                _b["azimuth_deg"]["num_bins"],
+                _b["radius_m"]["num_bins"],
+                _b["altitude_m"]["num_bins"],
+                _b["image_parallel_deg"]["num_bins"],
+                _b["image_perpendicular_deg"]["num_bins"],
+            ),
+        )
+
+        out["cherenkov.histogram.azi_rad_alt_par_tim"] = _tar_read_and_reshape(
+            tar_obj=tar_obj,
+            name="cherenkov.histogram.azi_rad_alt_par_tim.order-c.float32.gz",
+            shape=(
+                _b["azimuth_deg"]["num_bins"],
+                _b["radius_m"]["num_bins"],
+                _b["altitude_m"]["num_bins"],
+                _b["image_parallel_deg"]["num_bins"],
+                _b["time_s"]["num_bins"],
+            ),
+        )
+
+        out["airshower.histogram.alt"] = _tar_read_and_reshape(
+            tar_obj=tar_obj,
+            name="airshower.histogram.alt.int64.gz",
+            shape=(_b["altitude_m"]["num_bins"]),
+            dtype=np.int64,
+        )
+    return out
+
+
 def reduce(work_dir):
     map_dir = os.path.join(work_dir, "map")
     reduce_dir = os.path.join(work_dir, "reduce")
@@ -322,17 +439,30 @@ def reduce(work_dir):
     for site_key in sites:
         for particle_key in particles:
 
-            cer = np.zeros(
-                shape=(
-                    binning["energy_GeV"]["num_bins"],
-                    binning["azimuth_deg"]["num_bins"],
-                    binning["radius_m"]["num_bins"],
-                    binning["altitude_m"]["num_bins"],
-                    binning["image_parallel_deg"]["num_bins"],
-                    binning["image_perpendicular_deg"]["num_bins"],
-                ),
-                dtype=np.float32,
+            cer = zeros(
+                keys=[
+                    "energy_GeV",
+                    "azimuth_deg",
+                    "radius_m",
+                    "altitude_m",
+                    "image_parallel_deg",
+                    "image_perpendicular_deg",
+                ],
+                binning=binning,
             )
+
+            ter = zeros(
+                keys=[
+                    "energy_GeV",
+                    "azimuth_deg",
+                    "radius_m",
+                    "altitude_m",
+                    "image_parallel_deg",
+                    "time_s",
+                ],
+                binning=binning,
+            )
+
             num_airshowers = np.zeros(
                 shape=(
                     binning["energy_GeV"]["num_bins"],
@@ -352,19 +482,30 @@ def reduce(work_dir):
                     print(result_path)
 
                     result = read_map_result(result_path)
-
-                    cer[energy_bin] += result["num_cherenkov_photons"]
-                    num_airshowers[energy_bin] += result["num_airshowers"]
+                    cer[energy_bin] += result[
+                        "cherenkov.histogram.azi_rad_alt_par_per"
+                    ]
+                    ter[energy_bin] += result[
+                        "cherenkov.histogram.azi_rad_alt_par_tim"
+                    ]
+                    num_airshowers[energy_bin] += result[
+                        "airshower.histogram.alt"
+                    ]
 
             # normalize
             # =========
 
             pixel_solid_angle_sr = solid_angle_of_pixel_sr(binning=binning)
             aperture_area_m2 = area_of_aperture_m2(binning=binning)
+            pixel_width_rad = parallel_pixel_width_rad(binning=binning)
+            t_duration_s = time_slice_duration_s(binning=binning)
+
             num_para = binning["image_parallel_deg"]["num_bins"]
             num_perp = binning["image_perpendicular_deg"]["num_bins"]
+            num_time = binning["time_s"]["num_bins"]
 
             nan_img = np.nan * np.ones(shape=(num_para, num_perp))
+            nan_tmg = np.nan * np.ones(shape=(num_para, num_time))
 
             for ene in range(binning["energy_GeV"]["num_bins"]):
                 for azi in range(binning["azimuth_deg"]["num_bins"]):
@@ -372,19 +513,28 @@ def reduce(work_dir):
                         for alt in range(binning["altitude_m"]["num_bins"]):
                             num = num_airshowers[ene, alt]
                             if num > 0:
-                                norm_factor = (
+                                norm_factor_imgae = (
                                     num
                                     * aperture_area_m2
                                     * pixel_solid_angle_sr
                                 )
-                                cer[ene, azi, rad, alt] /= norm_factor
+                                norm_factor_timage = (
+                                    num
+                                    * aperture_area_m2
+                                    * pixel_width_rad
+                                    * t_duration_s
+                                )
+                                cer[ene, azi, rad, alt] /= norm_factor_imgae
+                                ter[ene, azi, rad, alt] /= norm_factor_timage
                             else:
                                 cer[ene, azi, rad, alt] = nan_img
+                                ter[ene, azi, rad, alt] = nan_tmg
 
             out = {
                 "binning": binning,
-                "cherenkov_photon_density": cer,
-                "num_airshowers": num_airshowers,
+                "cherenkov.density.ene_azi_rad_alt_par_per": cer,
+                "cherenkov.density.ene_azi_rad_alt_par_tim": ter,
+                "airshower.histogram.ene_alt": num_airshowers,
             }
             reduce_site_particle_dir = os.path.join(
                 reduce_dir, site_key, particle_key
@@ -393,42 +543,10 @@ def reduce(work_dir):
             write_raw(out, os.path.join(reduce_site_particle_dir, "raw.tar"))
 
 
-def read_map_result(path):
-    out = {}
-    with tarfile.TarFile(path, "r") as tar_obj:
-
-        tinfo = tar_obj.next()
-        assert tinfo.name == "job.json"
-        out["job"] = json.loads(tar_obj.extractfile(tinfo).read())
-        _b = out["job"]["binning"]
-
-        tinfo = tar_obj.next()
-        assert tinfo.name == "num_cherenkov_photons.order-c.float32.gz"
-        raw = gzip.decompress(tar_obj.extractfile(tinfo).read())
-        arr = np.frombuffer(raw, dtype=np.float32)
-        arr = arr.reshape(
-            (
-                _b["azimuth_deg"]["num_bins"],
-                _b["radius_m"]["num_bins"],
-                _b["altitude_m"]["num_bins"],
-                _b["image_parallel_deg"]["num_bins"],
-                _b["image_perpendicular_deg"]["num_bins"],
-            ),
-            order="c",
-        )
-        out["num_cherenkov_photons"] = arr
-
-        tinfo = tar_obj.next()
-        assert tinfo.name == "num_airshowers.int64.gz"
-        raw = gzip.decompress(tar_obj.extractfile(tinfo).read())
-        arr = np.frombuffer(raw, dtype=np.int64)
-        out["num_airshowers"] = arr
-    return out
-
-
 def write_raw(raw_look_up, path):
-    cer = raw_look_up["cherenkov_photon_density"]
     _b = raw_look_up["binning"]
+
+    cer = raw_look_up["cherenkov.density.ene_azi_rad_alt_par_per"]
     assert cer.dtype == np.float32
     assert cer.shape[0] == _b["energy_GeV"]["num_bins"]
     assert cer.shape[1] == _b["azimuth_deg"]["num_bins"]
@@ -436,10 +554,21 @@ def write_raw(raw_look_up, path):
     assert cer.shape[3] == _b["altitude_m"]["num_bins"]
     assert cer.shape[4] == _b["image_parallel_deg"]["num_bins"]
     assert cer.shape[5] == _b["image_perpendicular_deg"]["num_bins"]
-    num = raw_look_up["num_airshowers"]
+
+    ter = raw_look_up["cherenkov.density.ene_azi_rad_alt_par_tim"]
+    assert ter.dtype == np.float32
+    assert ter.shape[0] == _b["energy_GeV"]["num_bins"]
+    assert ter.shape[1] == _b["azimuth_deg"]["num_bins"]
+    assert ter.shape[2] == _b["radius_m"]["num_bins"]
+    assert ter.shape[3] == _b["altitude_m"]["num_bins"]
+    assert ter.shape[4] == _b["image_parallel_deg"]["num_bins"]
+    assert ter.shape[5] == _b["time_s"]["num_bins"]
+
+    num = raw_look_up["airshower.histogram.ene_alt"]
     assert num.dtype == np.int64
     assert num.shape[0] == _b["energy_GeV"]["num_bins"]
     assert num.shape[1] == _b["altitude_m"]["num_bins"]
+
     with tempfile.TemporaryDirectory(prefix="atg_") as tmp_dir:
         tmp_path = os.path.join(tmp_dir, "raw_look_up.tar")
         with tarfile.TarFile(tmp_path, "w") as tar_obj:
@@ -452,12 +581,17 @@ def write_raw(raw_look_up, path):
             )
             append_tar(
                 tar_obj=tar_obj,
-                name="cherenkov_photon_density.order-c.float32.gz",
+                name="cherenkov.density.ene_azi_rad_alt_par_per.order-c.float32.gz",
                 payload_bytes=gzip.compress(data=cer.tobytes(order="c")),
             )
             append_tar(
                 tar_obj=tar_obj,
-                name="num_airshowers.int64.gz",
+                name="cherenkov.density.ene_azi_rad_alt_par_tim.order-c.float32.gz",
+                payload_bytes=gzip.compress(data=ter.tobytes(order="c")),
+            )
+            append_tar(
+                tar_obj=tar_obj,
+                name="airshower.histogram.ene_alt.int64.gz",
                 payload_bytes=gzip.compress(data=num.tobytes(order="c"),),
             )
         nfs.move(src=tmp_path, dst=path)
@@ -471,12 +605,12 @@ def read_raw(path):
         out["binning"] = json.loads(tar_obj.extractfile(tinfo).read())
         _b = out["binning"]
 
-        tinfo = tar_obj.next()
-        assert tinfo.name == "cherenkov_photon_density.order-c.float32.gz"
-        raw = gzip.decompress(tar_obj.extractfile(tinfo).read())
-        arr = np.frombuffer(raw, dtype=np.float32)
-        arr = arr.reshape(
-            (
+        out[
+            "cherenkov.density.ene_azi_rad_alt_par_per"
+        ] = _tar_read_and_reshape(
+            tar_obj=tar_obj,
+            name="cherenkov.density.ene_azi_rad_alt_par_per.order-c.float32.gz",
+            shape=(
                 _b["energy_GeV"]["num_bins"],
                 _b["azimuth_deg"]["num_bins"],
                 _b["radius_m"]["num_bins"],
@@ -484,18 +618,28 @@ def read_raw(path):
                 _b["image_parallel_deg"]["num_bins"],
                 _b["image_perpendicular_deg"]["num_bins"],
             ),
-            order="c",
         )
-        out["cherenkov_photon_density"] = arr
 
-        tinfo = tar_obj.next()
-        assert tinfo.name == "num_airshowers.int64.gz"
-        raw = gzip.decompress(tar_obj.extractfile(tinfo).read())
-        arr = np.frombuffer(raw, dtype=np.int64)
-        arr = arr.reshape(
-            (_b["energy_GeV"]["num_bins"], _b["altitude_m"]["num_bins"],),
-            order="c",
+        out[
+            "cherenkov.density.ene_azi_rad_alt_par_tim"
+        ] = _tar_read_and_reshape(
+            tar_obj=tar_obj,
+            name="cherenkov.density.ene_azi_rad_alt_par_tim.order-c.float32.gz",
+            shape=(
+                _b["energy_GeV"]["num_bins"],
+                _b["azimuth_deg"]["num_bins"],
+                _b["radius_m"]["num_bins"],
+                _b["altitude_m"]["num_bins"],
+                _b["image_parallel_deg"]["num_bins"],
+                _b["time_s"]["num_bins"],
+            ),
         )
-        out["num_airshowers"] = arr
+
+        out["airshower.histogram.ene_alt"] = _tar_read_and_reshape(
+            tar_obj=tar_obj,
+            name="airshower.histogram.ene_alt.int64.gz",
+            shape=(_b["energy_GeV"]["num_bins"], _b["altitude_m"]["num_bins"]),
+            dtype=np.int64,
+        )
     out["explicit_binning"] = bins.make_explicit_binning(out["binning"])
     return out

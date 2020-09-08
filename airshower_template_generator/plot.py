@@ -10,25 +10,25 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
-def write_image(path, binning, image):
+def write_image(
+    path,
+    binning,
+    image,
+    x_key="image_parallel_deg",
+    y_key="image_perpendicular_deg",
+):
     _b = binning
     explbins = bins.make_explicit_binning(_b)
-    w_deg = (
-        _b["image_parallel_deg"]["stop_edge"]
-        - _b["image_parallel_deg"]["start_edge"]
-    )
-    h_deg = (
-        _b["image_perpendicular_deg"]["stop_edge"]
-        - _b["image_perpendicular_deg"]["start_edge"]
-    )
+    w_deg = _b[x_key]["num_bins"]
+    h_deg = _b[y_key]["num_bins"]
     w = 0.8
     h = h_deg / w_deg * w * 16 / 9
     fig = plt.figure(figsize=(16, 9), dpi=120)
     ax = fig.add_axes([0.1, 0.1, w, h])
     ax.set_title("{:.3e} ph".format(np.sum(image)))
     ax.pcolor(
-        explbins["image_parallel_deg"]["edges"],
-        explbins["image_perpendicular_deg"]["edges"],
+        explbins[x_key]["edges"],
+        explbins[y_key]["edges"],
         image.T,
         cmap="inferno",
     )
