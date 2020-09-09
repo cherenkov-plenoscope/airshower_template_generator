@@ -52,6 +52,9 @@ def make_jobs(work_dir):
 
     az = binning["azimuth_deg"]
     assert image_pixels_are_square(binning=binning)
+    assert (
+        binning["aperture_radius_for_timing_m"] >= binning["aperture_radius_m"]
+    )
     jobs = []
     for site_key in sites:
         for particle_key in particles:
@@ -294,28 +297,26 @@ def run_job(job):
                 ]
             )
 
-            arrival_time_ns = np.array(cherenkov_bunches[:, cpw.ITIME])
-
             for azi in range(job["binning"]["azimuth_deg"]["num_bins"]):
                 meets = xy_tree.query_ball_point(
                     x=xy_supports[azi], r=job["binning"]["aperture_radius_m"]
                 )
 
-                sourrounding_meets = xy_tree.query_ball_point(
+                surround_meets = xy_tree.query_ball_point(
                     x=xy_supports[azi],
-                    r=10.0 * job["binning"]["aperture_radius_m"],
+                    r=job["binning"]["aperture_radius_for_timing_m"],
                 )
 
                 for rad in range(job["binning"]["radius_m"]["num_bins"]):
 
-                    num_cherenkov_photons_in_sourrounding = len(
-                        sourrounding_meets[rad]
+                    num_cherenkov_photons_in_surrounding = len(
+                        surround_meets[rad]
                     )
 
-                    if num_cherenkov_photons_in_sourrounding > 0:
+                    if num_cherenkov_photons_in_surrounding > 0:
 
                         med_time_ns = np.median(
-                            arrival_time_ns[sourrounding_meets[rad]]
+                            cherenkov_bunches[surround_meets[rad], cpw.ITIME]
                         )
 
                         view = cherenkov_bunches[meets[rad], :]

@@ -29,8 +29,9 @@ BINNING = {
         "stop_edge": 0.5,
         "num_bins": 32,
     },
-    "time_s": {"start_edge": -16e-9, "stop_edge": 16e-9, "num_bins": 32},
+    "time_s": {"start_edge": -8e-9, "stop_edge": 24e-9, "num_bins": 16},
     "aperture_radius_m": 5.0,
+    "aperture_radius_for_timing_m": 50.0,
 }
 
 RUN_CONFIG = {
