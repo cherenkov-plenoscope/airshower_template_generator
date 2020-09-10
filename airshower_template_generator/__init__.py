@@ -18,6 +18,10 @@ from scipy import spatial
 import tarfile
 import gzip
 
+RANDOM_SEED_STRUCTRUE = cpw.random_seed.CorsikaRandomSeed(
+    NUM_DIGITS_RUN_ID=3,
+    NUM_DIGITS_AIRSHOWER_ID=6,
+)
 
 def init(
     work_dir,
@@ -104,7 +108,6 @@ def make_corsika_steering_card(
     site, particle, energy, num_airshower, random_seed
 ):
     run_id = random_seed + 1
-    assert run_id > 0
     steering = {
         "run": {
             "run_id": run_id,
@@ -124,7 +127,11 @@ def make_corsika_steering_card(
             "zenith_rad": 0.0,
             "azimuth_rad": 0.0,
             "depth_g_per_cm2": 0.0,
-            "random_seed": cpw.simple_seed(i + run_id),
+            "random_seed": cpw.simple_seed(
+                RANDOM_SEED_STRUCTRUE.random_seed_based_on(
+                    run_id=run_id, airshower_id=i
+                )
+            ),
         }
         steering["primaries"].append(primary)
     return steering

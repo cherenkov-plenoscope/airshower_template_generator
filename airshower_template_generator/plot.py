@@ -82,7 +82,7 @@ def write_view(
     image_integrated=None,
     lut=None,
     binning=None,
-    num_airshowers=None,
+    num_airshowers_ene_alt=None,
 ):
 
     if image_integrated is None:
@@ -94,10 +94,10 @@ def write_view(
             radius_m=radius_m,
         )
         _b = lut["binning"]
-        num_showers = np.array(lut["num_airshowers"])
+        num_showers = np.array(lut["airshower.histogram.ene_alt"])
         num_photons = np.array(num_showers)
     else:
-        num_showers = num_airshowers
+        num_showers = num_airshowers_ene_alt
         num_photons = np.array(num_showers)
         _b = binning
 
@@ -310,9 +310,9 @@ def move_linear(view_stations, num_steps_per_station=60):
 
 def example_view_path():
     p = []
-    p.append([0.5, 12.5e3, 0.0, 0.0])
-    p.append([0.5, 12.5e3, 0.0, 250.0])
-    p.append([0.5, 12.5e3, 0.0, 75.0])
+    p.append([1.25, 12.5e3, 0.0, 0.0])
+    p.append([1.25, 12.5e3, 0.0, 250.0])
+    p.append([1.25, 12.5e3, 0.0, 75.0])
     p.append([20.0, 12.5e3, 0.0, 75.0])
     p.append([20.0, 7.5e3, 0.0, 75.0])
     p.append([20.0, 12.5e3, 0.0, 75.0])
@@ -321,7 +321,7 @@ def example_view_path():
     p.append([5.0, 12.5e3, 0.0, 75.0])
     p.append([5.0, 15.5e3, 0.0, 75.0])
     p.append([5.0, 10.5e3, 0.0, 75.0])
-    p.append([0.5, 12.5e3, 0.0, 0.0])
+    p.append([1.25, 12.5e3, 0.0, 0.0])
     return p
 
 
@@ -340,7 +340,7 @@ def make_jobs_walk(lut, out_dir, views, image_file_format="jpg"):
             "altitude_m": view[1],
             "azimuth_deg": view[2],
             "radius_m": view[3],
-            "num_airshowers": lut["num_airshowers"],
+            "airshower.histogram.ene_alt": lut["airshower.histogram.ene_alt"],
             "image_integrated": query.query_image(
                 lut=lut,
                 energy_GeV=view[0],
@@ -363,5 +363,5 @@ def run_job(job):
         lut=None,
         binning=job["binning"],
         image_integrated=job["image_integrated"],
-        num_airshowers=job["num_airshowers"],
+        num_airshowers_ene_alt=job["airshower.histogram.ene_alt"],
     )

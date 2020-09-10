@@ -2,7 +2,33 @@ import numpy as np
 from . import bins
 
 
-def query_image(lut, energy_GeV, altitude_m, azimuth_deg, radius_m):
+def query_par_per(lut, energy_GeV, altitude_m, azimuth_deg, radius_m):
+    return _query_array(
+        lut=lut,
+        energy_GeV=energy_GeV,
+        altitude_m=altitude_m,
+        azimuth_deg=azimuth_deg,
+        radius_m=radius_m,
+        y_key="image_perpendicular_deg",
+        lut_key="cherenkov.density.ene_azi_rad_alt_par_per",
+    )
+
+
+def query_par_tim(lut, energy_GeV, altitude_m, azimuth_deg, radius_m):
+    return _query_array(
+        lut=lut,
+        energy_GeV=energy_GeV,
+        altitude_m=altitude_m,
+        azimuth_deg=azimuth_deg,
+        radius_m=radius_m,
+        y_key="time_s",
+        lut_key="cherenkov.density.ene_azi_rad_alt_par_tim",
+    )
+
+
+def _query_array(
+    lut, energy_GeV, altitude_m, azimuth_deg, radius_m, y_key, lut_key
+):
     b = bins.find_bins(
         explicit_binning=lut["explicit_binning"],
         energy_GeV=energy_GeV,
@@ -14,12 +40,12 @@ def query_image(lut, energy_GeV, altitude_m, azimuth_deg, radius_m):
     avg_img = np.zeros(
         shape=(
             lut["binning"]["image_parallel_deg"]["num_bins"],
-            lut["binning"]["image_perpendicular_deg"]["num_bins"],
+            lut["binning"][y_key]["num_bins"],
         ),
         dtype=np.float32,
     )
 
-    cpd = lut["cherenkov_photon_density"]
+    cpd = lut[lut_key]
 
     weights = []
     for ene in b["energy_GeV"]:
