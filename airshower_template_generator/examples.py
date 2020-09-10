@@ -15,21 +15,21 @@ PARTICLES = {
 }
 
 BINNING = {
-    "energy_GeV": {"start_support": 1e0, "stop_support": 2e0, "num_bins": 3,},
+    "energy_GeV": {"start_support": 1e0, "stop_support": 1e3, "num_bins": 15},
     "azimuth_deg": {"num_bins": 3},
-    "radius_m": {"start_support": 0.0, "stop_support": 250.0, "num_bins": 25,},
-    "altitude_m": {"start_edge": 5e3, "stop_edge": 30e3, "num_bins": 25},
+    "radius_m": {"start_support": 0.0, "stop_support": 640.0, "num_bins": 64},
+    "altitude_m": {"start_edge": 5000.0, "stop_edge": 29000.0, "num_bins": 24},
     "image_parallel_deg": {
         "start_edge": -0.5,
-        "stop_edge": 2.5,
-        "num_bins": 96,
+        "stop_edge": 4.5,
+        "num_bins": 120,
     },
     "image_perpendicular_deg": {
         "start_edge": -0.5,
         "stop_edge": 0.5,
-        "num_bins": 32,
+        "num_bins": 24,
     },
-    "time_s": {"start_edge": -8e-9, "stop_edge": 24e-9, "num_bins": 16},
+    "time_s": {"start_edge": -24e-9, "stop_edge": 24e-9, "num_bins": 24},
     "aperture_radius_m": 5.0,
     "aperture_radius_for_timing_m": 50.0,
 }
