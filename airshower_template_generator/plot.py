@@ -86,7 +86,7 @@ def write_view(
 ):
 
     if image_integrated is None:
-        image_integrated = query.query_image(
+        image_integrated = query.query_par_per(
             lut=lut,
             energy_GeV=energy_GeV,
             altitude_m=altitude_m,
@@ -131,10 +131,20 @@ def write_view(
     figsize = (16, 9)
     dpi = 120
 
-    fig = plt.figure(figsize=figsize, dpi=dpi)
-    ax_img = fig.add_axes(
-        axis_size(75, 1920 - 75, 480, 480 + ((1920 - 150) / 3), figsize, dpi)
+    _img_para_span = (
+        _b["image_parallel_deg"]["stop_edge"] -
+        _b["image_parallel_deg"]["start_edge"]
     )
+    _img_perp_span = (
+        _b["image_perpendicular_deg"]["stop_edge"] -
+        _b["image_perpendicular_deg"]["start_edge"]
+    )
+
+    _img_w = 0.9
+    _img_h = _img_w * (_img_perp_span/_img_para_span)
+
+    fig = plt.figure(figsize=figsize, dpi=dpi)
+    ax_img = fig.add_axes([0.05, 0.5, _img_w, _img_h*(16/9)])
     ax_img.pcolor(
         explbins["image_parallel_deg"]["edges"],
         explbins["image_perpendicular_deg"]["edges"],
@@ -144,8 +154,6 @@ def write_view(
     rm_splines(ax=ax_img)
     ax_img.grid(color="white", linestyle="-", linewidth=0.66, alpha=0.3)
     ax_img.set_xlabel("radial / $^{\\circ}$")
-    ax_img.set_yticks(np.linspace(-0.5, 0.5, 5))
-    ax_img.set_xticks(np.linspace(-0.5, 2.5, 13))
 
     ax_aperture = fig.add_axes(
         axis_size(75, 75 + 330, 75, 75 + 330, figsize, dpi)
@@ -313,9 +321,9 @@ def example_view_path():
     p.append([1.25, 12.5e3, 0.0, 0.0])
     p.append([1.25, 12.5e3, 0.0, 250.0])
     p.append([1.25, 12.5e3, 0.0, 75.0])
-    p.append([20.0, 12.5e3, 0.0, 75.0])
-    p.append([20.0, 7.5e3, 0.0, 75.0])
-    p.append([20.0, 12.5e3, 0.0, 75.0])
+    p.append([9.0, 12.5e3, 0.0, 75.0])
+    p.append([9.0, 7.5e3, 0.0, 75.0])
+    p.append([9.0, 12.5e3, 0.0, 75.0])
     p.append([5.0, 12.5e3, 0.0, 75.0])
     p.append([5.0, 12.5e3, 360.0, 290.0])
     p.append([5.0, 12.5e3, 0.0, 75.0])
@@ -341,7 +349,7 @@ def make_jobs_walk(lut, out_dir, views, image_file_format="jpg"):
             "azimuth_deg": view[2],
             "radius_m": view[3],
             "airshower.histogram.ene_alt": lut["airshower.histogram.ene_alt"],
-            "image_integrated": query.query_image(
+            "image_integrated": query.query_par_per(
                 lut=lut,
                 energy_GeV=view[0],
                 altitude_m=view[1],
