@@ -132,19 +132,19 @@ def write_view(
     dpi = 120
 
     _img_para_span = (
-        _b["image_parallel_deg"]["stop_edge"] -
-        _b["image_parallel_deg"]["start_edge"]
+        _b["image_parallel_deg"]["stop_edge"]
+        - _b["image_parallel_deg"]["start_edge"]
     )
     _img_perp_span = (
-        _b["image_perpendicular_deg"]["stop_edge"] -
-        _b["image_perpendicular_deg"]["start_edge"]
+        _b["image_perpendicular_deg"]["stop_edge"]
+        - _b["image_perpendicular_deg"]["start_edge"]
     )
 
     _img_w = 0.9
-    _img_h = _img_w * (_img_perp_span/_img_para_span)
+    _img_h = _img_w * (_img_perp_span / _img_para_span)
 
     fig = plt.figure(figsize=figsize, dpi=dpi)
-    ax_img = fig.add_axes([0.05, 0.5, _img_w, _img_h*(16/9)])
+    ax_img = fig.add_axes([0.05, 0.5, _img_w, _img_h * (16 / 9)])
     ax_img.pcolor(
         explbins["image_parallel_deg"]["edges"],
         explbins["image_perpendicular_deg"]["edges"],

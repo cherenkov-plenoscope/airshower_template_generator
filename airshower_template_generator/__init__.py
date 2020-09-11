@@ -19,9 +19,9 @@ import tarfile
 import gzip
 
 RANDOM_SEED_STRUCTRUE = cpw.random_seed.CorsikaRandomSeed(
-    NUM_DIGITS_RUN_ID=3,
-    NUM_DIGITS_AIRSHOWER_ID=6,
+    NUM_DIGITS_RUN_ID=3, NUM_DIGITS_AIRSHOWER_ID=6,
 )
+
 
 def init(
     work_dir,
@@ -137,35 +137,32 @@ def make_corsika_steering_card(
     return steering
 
 
-def _project_to_image(
-    cxs,
-    cys,
-    relative_time,
-    bunch_size,
-    c_para_bin_edges,
-    c_perp_bin_edges,
-    time_bin_edges,
-    aperture_x,
-    aperture_y,
+def project_light_field_onto_source_image(
+    cer_cx_rad,
+    cer_cy_rad,
+    cer_x_m,
+    cer_y_m,
+    primary_cx_rad,
+    primary_cy_rad,
+    primary_core_x_m,
+    primary_core_y_m,
 ):
-    azimuth = np.arctan2(aperture_y, aperture_x)
-    c_para = np.cos(-azimuth) * cxs - np.sin(-azimuth) * cys
-    c_perp = np.sin(-azimuth) * cxs + np.cos(-azimuth) * cys
-    image = np.histogram2d(
-        x=c_para,
-        y=c_perp,
-        weights=bunch_size,
-        bins=(c_para_bin_edges, c_perp_bin_edges),
-    )[0]
+    cer_x_wrt_core = cer_x_m - primary_core_x_m
+    cer_y_wrt_core = cer_y_m - primary_core_y_m
 
-    time_image = np.histogram2d(
-        x=c_para,
-        y=relative_time,
-        weights=bunch_size,
-        bins=(c_para_bin_edges, time_bin_edges),
-    )[0]
+    cer_cx_wrt_primary = cer_cx_rad - primary_cx_rad
+    cer_cy_wrt_primary = cer_cy_rad - primary_cy_rad
 
-    return image, time_image
+    azimuth = np.arctan2(cer_y_wrt_core, cer_x_wrt_core)
+    derotate = -1.0 * azimuth
+
+    cos_d = np.cos(derotate)
+    sin_d = np.sin(derotate)
+
+    cer_cpara = cos_d * cer_cx_wrt_primary - sin_d * cer_cy_wrt_primary
+    cer_cperp = sin_d * cer_cx_wrt_primary + cos_d * cer_cy_wrt_primary
+
+    return cer_cpara, cer_cperp
 
 
 def image_pixels_are_square(binning):
@@ -197,9 +194,11 @@ def run_job(job):
         job["map_dir"], "{:06d}.tar".format(job["energy_job"])
     )
     explbin = bins.make_explicit_binning(binning=job["binning"])
-    c_para_bin_edges = np.deg2rad(explbin["image_parallel_deg"]["edges"])
-    c_perp_bin_edges = np.deg2rad(explbin["image_perpendicular_deg"]["edges"])
-    time_bin_edges = explbin["time_s"]["edges"]
+    c_para_bin_edges_rad = np.deg2rad(explbin["image_parallel_deg"]["edges"])
+    c_perp_bin_edges_rad = np.deg2rad(
+        explbin["image_perpendicular_deg"]["edges"]
+    )
+    time_bin_edges_s = explbin["time_s"]["edges"]
     altitude_bin_edges_m = explbin["altitude_m"]["edges"]
 
     xy_supports = bins.xy_supports_on_observationlevel(binning=job["binning"])
@@ -327,20 +326,42 @@ def run_job(job):
                         )
 
                         view = cherenkov_bunches[meets[rad], :]
-                        img, timg = _project_to_image(
-                            cxs=view[:, cpw.ICX],
-                            cys=view[:, cpw.ICY],
-                            relative_time=(view[:, cpw.ITIME] - med_time_ns)
-                            * 1e-9,
-                            bunch_size=view[:, cpw.IBSIZE],
-                            c_para_bin_edges=c_para_bin_edges,
-                            c_perp_bin_edges=c_perp_bin_edges,
-                            time_bin_edges=time_bin_edges,
-                            aperture_x=xy_supports[azi][rad][0],
-                            aperture_y=xy_supports[azi][rad][1],
+
+                        (
+                            cer_cpara,
+                            cer_cperp,
+                        ) = project_light_field_onto_source_image(
+                            cer_cx_rad=view[:, cpw.ICX],
+                            cer_cy_rad=view[:, cpw.ICY],
+                            cer_x_m=xy_supports[azi][rad][0],
+                            cer_y_m=xy_supports[azi][rad][1],
+                            primary_cx_rad=0.0,
+                            primary_cy_rad=0.0,
+                            primary_core_x_m=0.0,
+                            primary_core_y_m=0.0,
                         )
-                        views[azi][rad][altitude_bin] += img
-                        tiews[azi][rad][altitude_bin] += timg
+                        cer_bunch_size = view[:, cpw.IBSIZE]
+
+                        image = np.histogram2d(
+                            x=cer_cpara,
+                            y=cer_cperp,
+                            weights=cer_bunch_size,
+                            bins=(c_para_bin_edges_rad, c_perp_bin_edges_rad),
+                        )[0]
+
+                        cer_relative_time_s = (
+                            view[:, cpw.ITIME] - med_time_ns
+                        ) * 1e-9
+
+                        time_image = np.histogram2d(
+                            x=cer_cpara,
+                            y=cer_relative_time_s,
+                            weights=cer_bunch_size,
+                            bins=(c_para_bin_edges_rad, time_bin_edges_s),
+                        )[0]
+
+                        views[azi][rad][altitude_bin] += image
+                        tiews[azi][rad][altitude_bin] += time_image
 
         tmp_result_path = os.path.join(tmp_dir, "result.tar")
         with tarfile.TarFile(tmp_result_path, "w") as tar_obj:
