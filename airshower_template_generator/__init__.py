@@ -507,7 +507,9 @@ def reduce(work_dir):
                 )
 
                 tmpl = os.path.join(map_site_particle_energy_dir, "*.tar")
-                for result_path in glob.glob(tmpl):
+                result_paths = glob.glob(tmpl)
+                result_paths.sort()
+                for result_path in result_paths:
                     print(result_path)
 
                     result = read_map_result(result_path)
