@@ -79,27 +79,27 @@ def write_view(
     altitude_m,
     azimuth_deg,
     radius_m,
-    image_integrated=None,
-    lut=None,
-    binning=None,
-    num_airshowers_ene_alt=None,
+    lut
 ):
 
-    if image_integrated is None:
-        image_integrated = query.query_par_per(
-            lut=lut,
-            energy_GeV=energy_GeV,
-            altitude_m=altitude_m,
-            azimuth_deg=azimuth_deg,
-            radius_m=radius_m,
-        )
-        _b = lut["binning"]
-        num_showers = np.array(lut["airshower.histogram.ene_alt"])
-        num_photons = np.array(num_showers)
-    else:
-        num_showers = num_airshowers_ene_alt
-        num_photons = np.array(num_showers)
-        _b = binning
+    image_integrated = query.query_par_per(
+        lut=lut,
+        energy_GeV=energy_GeV,
+        altitude_m=altitude_m,
+        azimuth_deg=azimuth_deg,
+        radius_m=radius_m,
+    )
+    timage_integrated = query.query_par_tim(
+        lut=lut,
+        energy_GeV=energy_GeV,
+        altitude_m=altitude_m,
+        azimuth_deg=azimuth_deg,
+        radius_m=radius_m,
+    )
+    _b = lut["binning"]
+    num_showers = np.array(lut["airshower.histogram.ene_alt"])
+    num_photons = np.array(num_showers)
+
 
     explbins = bins.make_explicit_binning(_b)
     b = bins.find_bins(
@@ -144,7 +144,10 @@ def write_view(
     _img_h = _img_w * (_img_perp_span / _img_para_span)
 
     fig = plt.figure(figsize=figsize, dpi=dpi)
-    ax_img = fig.add_axes([0.05, 0.5, _img_w, _img_h * (16 / 9)])
+
+    # para vs. perp
+    # =============
+    ax_img = fig.add_axes([0.05, 0.67, _img_w, _img_h * (16 / 9)])
     ax_img.pcolor(
         explbins["image_parallel_deg"]["edges"],
         explbins["image_perpendicular_deg"]["edges"],
@@ -155,8 +158,22 @@ def write_view(
     ax_img.grid(color="white", linestyle="-", linewidth=0.66, alpha=0.3)
     ax_img.set_xlabel("radial / $^{\\circ}$")
 
+    # para vs. time
+    # =============
+    ax_tmg = fig.add_axes([0.05, 0.34, _img_w, _img_h * (16 / 9)])
+    ax_tmg.pcolor(
+        explbins["image_parallel_deg"]["edges"],
+        explbins["time_s"]["edges"],
+        timage_integrated.T,
+        cmap="inferno",
+    )
+    rm_splines(ax=ax_tmg)
+    ax_tmg.grid(color="white", linestyle="-", linewidth=0.66, alpha=0.3)
+    ax_tmg.set_xlabel("radial / $^{\\circ}$")
+
+    YS = 75
     ax_aperture = fig.add_axes(
-        axis_size(75, 75 + 330, 75, 75 + 330, figsize, dpi)
+        axis_size(75, 75 + 330, YS, 75 + 330, figsize, dpi)
     )
     add_circle(ax=ax_aperture, x=0, y=0, r=max_core_radius, linestyle="k:")
     rm_splines(ax=ax_aperture)
@@ -176,7 +193,7 @@ def write_view(
     ax_aperture.set_ylabel("y / m")
 
     ax_ap_text = fig.add_axes(
-        axis_size(75 + 330, 75 + 330 + 300, 75, 75 + 330, figsize, dpi)
+        axis_size(75 + 330, 75 + 330 + 300, YS, 75 + 330, figsize, dpi)
     )
     ax_ap_text.set_axis_off()
     ax_ap_text.text(0.1, 1.0, "x {:0.1f}m".format(aperture_x))
@@ -220,7 +237,7 @@ def write_view(
     # energy-altitude-population
     # --------------------------
     ax_population = fig.add_axes(
-        axis_size(880, 880 + 330, 75, 75 + 330, figsize, dpi)
+        axis_size(880, 880 + 330, YS, 75 + 330, figsize, dpi)
     )
     rm_splines(ax=ax_population)
     ax_population.pcolor(lookup_population_pos.T, cmap="binary", vmax=1.0)
@@ -244,7 +261,7 @@ def write_view(
                 0.9 * (azi["weight"] + rad["weight"]) / 2
             )
     ax_az_ra_popu = fig.add_axes(
-        axis_size(680, 680 + 60, 75, 75 + 330, figsize, dpi)
+        axis_size(680, 680 + 60, YS, 75 + 330, figsize, dpi)
     )
     rm_splines(ax=ax_az_ra_popu)
     ax_az_ra_popu.pcolor(az_ra_popu.T, cmap="binary", vmax=1.0)
@@ -257,7 +274,7 @@ def write_view(
     ax_az_ra_popu.set_yticklabels([])
     ax_az_ra_popu.grid(color="k", linestyle="-", linewidth=0.66, alpha=0.3)
 
-    ax_size = fig.add_axes(axis_size(1300, 1350, 75, 75 + 330, figsize, dpi))
+    ax_size = fig.add_axes(axis_size(1300, 1350, YS, 75 + 330, figsize, dpi))
     add_slider_axes(
         ax=ax_size,
         start=1e3,
@@ -270,7 +287,7 @@ def write_view(
     )
 
     ax_altitude_slider = fig.add_axes(
-        axis_size(1450, 1500, 75, 75 + 330, figsize, dpi)
+        axis_size(1450, 1500, YS, 75 + 330, figsize, dpi)
     )
     add_slider_axes(
         ax=ax_altitude_slider,
@@ -282,7 +299,7 @@ def write_view(
     )
 
     ax_energy_slider = fig.add_axes(
-        axis_size(1600, 1920 - 275, 75, 75 + 330, figsize, dpi)
+        axis_size(1600, 1920 - 275, YS, 75 + 330, figsize, dpi)
     )
     add_slider_axes(
         ax=ax_energy_slider,
