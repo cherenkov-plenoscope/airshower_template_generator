@@ -88,20 +88,54 @@ def make_explicit_binning(binning):
     return out
 
 
-def xy_supports_on_observationlevel(binning):
-    _b = binning
-    _eb = make_explicit_binning(binning=_b)
+def full_coverage_xy_supports_on_observationlevel(binning):
+    """
+    1dim) azimuth
+    2dim) radius
+    3dim) probes on azimuth-arc
+    """
+    eb = make_explicit_binning(binning=binning)
+    probing_aperute_diameter_m = 2.0 * binning["aperture_radius_m"]
 
-    xy_supports = np.zeros(
-        shape=(_b["azimuth_deg"]["num_bins"], _b["radius_m"]["num_bins"], 2,)
-    )
-    radius_m_supports = _eb["radius_m"]["supports"]
-    azimuth_deg_supports = _eb["azimuth_deg"]["supports"]
-    for azi, a_deg in enumerate(azimuth_deg_supports):
-        for rad, r_m in enumerate(radius_m_supports):
-            xy_supports[azi][rad][0] = np.cos(np.deg2rad(a_deg)) * r_m
-            xy_supports[azi][rad][1] = np.sin(np.deg2rad(a_deg)) * r_m
+    xy_supports = []
+    for azi in range(binning["azimuth_deg"]["num_bins"]):
+        xy_supports.append([])
+        for rad in range(binning["radius_m"]["num_bins"]):
+            xy_supports[azi].append([])
+
+    azi_bin_width_deg = 360.0 / binning["azimuth_deg"]["num_bins"]
+
+    for azi, azi_center_deg in enumerate(eb["azimuth_deg"]["supports"]):
+        for rad, r_m in enumerate(eb["radius_m"]["supports"]):
+
+            azi_circumference_m = 2.0 * np.pi * r_m
+            azi_arc_length_m = (
+                azi_circumference_m / binning["azimuth_deg"]["num_bins"]
+            )
+
+            num_probing_apertures_on_arc = (
+                azi_arc_length_m // probing_aperute_diameter_m
+            )
+            if num_probing_apertures_on_arc == 0:
+                num_probing_apertures_on_arc += 1
+
+            arc_azimuths_deg = np.linspace(
+                azi_center_deg - 0.5 * azi_bin_width_deg,
+                azi_center_deg + 0.5 * azi_bin_width_deg,
+                num_probing_apertures_on_arc
+            )
+
+            for azi_deg in arc_azimuths_deg:
+                _x = np.cos(np.deg2rad(azi_deg)) * r_m
+                _y = np.sin(np.deg2rad(azi_deg)) * r_m
+                xy_supports[azi][rad].append([_x, _y])
+
+    for azi, azi_center_deg in enumerate(eb["azimuth_deg"]["supports"]):
+        for rad, r_m in enumerate(eb["radius_m"]["supports"]):
+            xy_supports[azi][rad] = np.array(xy_supports[azi][rad])
+
     return xy_supports
+
 
 
 def find_bins(explicit_binning, energy_GeV, altitude_m, azimuth_deg, radius_m):
