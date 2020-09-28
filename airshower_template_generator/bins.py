@@ -122,7 +122,7 @@ def full_coverage_xy_supports_on_observationlevel(binning):
             arc_azimuths_deg = np.linspace(
                 azi_center_deg - 0.5 * azi_bin_width_deg,
                 azi_center_deg + 0.5 * azi_bin_width_deg,
-                num_probing_apertures_on_arc
+                num_probing_apertures_on_arc,
             )
 
             for azi_deg in arc_azimuths_deg:
@@ -135,7 +135,6 @@ def full_coverage_xy_supports_on_observationlevel(binning):
             xy_supports[azi][rad] = np.array(xy_supports[azi][rad])
 
     return xy_supports
-
 
 
 def find_bins(explicit_binning, energy_GeV, altitude_m, azimuth_deg, radius_m):
