@@ -73,14 +73,7 @@ def add_slider_axes(ax, start, stop, value, label, log=False):
     ax.plot([0, 1], [value, value], "k", linewidth=5)
 
 
-def write_view(
-    path,
-    energy_GeV,
-    altitude_m,
-    azimuth_deg,
-    radius_m,
-    lut
-):
+def write_view(path, energy_GeV, altitude_m, azimuth_deg, radius_m, lut):
 
     image_integrated = query.query_par_per(
         lut=lut,
@@ -99,7 +92,6 @@ def write_view(
     _b = lut["binning"]
     num_showers = np.array(lut["airshower.histogram.ene_alt"])
     num_photons = np.array(num_showers)
-
 
     explbins = bins.make_explicit_binning(_b)
     b = bins.find_bins(
