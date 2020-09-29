@@ -2,6 +2,7 @@ from . import examples
 from . import bins
 from . import query
 from . import plot
+from . import model
 
 import numpy as np
 import corsika_primary_wrapper as cpw
@@ -64,19 +65,43 @@ def make_jobs(work_dir):
         for particle_key in particles:
             for energy_bin, energy_GeV in enumerate(energy_bin_supports):
                 energy_key = "energy_bin_{:06d}".format(energy_bin)
-                for energy_job in range(run_config["num_jobs_in_energy_bin"]):
-                    job = {}
-                    job["map_dir"] = os.path.join(
-                        map_dir, site_key, particle_key, energy_key
-                    )
-                    job["site"] = sites[site_key]
-                    job["particle"] = particles[particle_key]
-                    job["energy_GeV"] = energy_GeV
-                    job["energy_bin"] = energy_bin
-                    job["energy_job"] = energy_job
-                    job["binning"] = binning
-                    job["run_config"] = run_config
-                    jobs.append(job)
+
+                num_airshower_in_job = int(
+                    np.ceil(binning["energy_GeV"]["stop_support"] / energy_GeV)
+                )
+
+                energy_job = 0
+                for _ in range(run_config["num_jobs_in_energy_bin"]):
+
+                    num_remaining_airshower = int(num_airshower_in_job)
+
+                    while num_remaining_airshower > 0:
+                        job = {}
+                        job["map_dir"] = os.path.join(
+                            map_dir, site_key, particle_key, energy_key
+                        )
+                        job["site"] = sites[site_key]
+                        job["particle"] = particles[particle_key]
+                        job["energy_GeV"] = energy_GeV
+                        job["energy_bin"] = energy_bin
+                        job["energy_job"] = energy_job
+                        job["binning"] = binning
+                        job["run_config"] = run_config
+                        if (
+                            num_remaining_airshower
+                            > run_config["max_num_airshower_in_job"]
+                        ):
+                            job["num_airshower"] = run_config[
+                                "max_num_airshower_in_job"
+                            ]
+                        else:
+                            job["num_airshower"] = num_remaining_airshower
+                        jobs.append(job)
+
+                        num_remaining_airshower -= run_config[
+                            "max_num_airshower_in_job"
+                        ]
+                        energy_job += 1
     return jobs
 
 
@@ -205,17 +230,12 @@ def run_job(job):
         binning=job["binning"]
     )
 
-    num_airshowers_to_be_thrown = int(
-        np.ceil(
-            job["run_config"]["energy_to_be_thrown_in_job_GeV"]
-            / job["energy_GeV"]
-        )
-    )
-
     max_num_airshower_to_collect_in_altitude_bin = int(
         np.ceil(
-            job["run_config"]["max_energy_to_collect_in_altitude_bin_GeV"]
-            / job["energy_GeV"]
+            job["run_config"][
+                "max_fraction_of_airshowers_to_collect_in_altitude_bin"
+            ]
+            * job["num_airshower"]
         )
     )
 
@@ -250,7 +270,7 @@ def run_job(job):
         site=job["site"],
         particle=job["particle"],
         energy=job["energy_GeV"],
-        num_airshower=num_airshowers_to_be_thrown,
+        num_airshower=job["num_airshower"],
         random_seed=job["energy_job"],
     )
 
@@ -314,7 +334,7 @@ def run_job(job):
 
                         meets = xy_tree.query_ball_point(
                             x=xy_supports[azi][rad][probe],
-                            r=job["binning"]["aperture_radius_m"]
+                            r=job["binning"]["aperture_radius_m"],
                         )
 
                         surround_meets = xy_tree.query_ball_point(
@@ -353,7 +373,10 @@ def run_job(job):
                                 x=cer_cpara,
                                 y=cer_cperp,
                                 weights=cer_bunch_size,
-                                bins=(c_para_bin_edges_rad, c_perp_bin_edges_rad),
+                                bins=(
+                                    c_para_bin_edges_rad,
+                                    c_perp_bin_edges_rad,
+                                ),
                             )[0]
 
                             cer_relative_time_s = (

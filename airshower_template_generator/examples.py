@@ -45,7 +45,7 @@ RUN_CONFIG = {
             "corsika75600Linux_QGSII_urqmd",
         )
     ),
-    "energy_to_be_thrown_in_job_GeV": 1e2,
-    "max_energy_to_collect_in_altitude_bin_GeV": 1e1,
+    "max_num_airshowers_in_job": 100,
+    "max_fraction_of_airshowers_to_collect_in_altitude_bin": 0.33,
     "num_jobs_in_energy_bin": 4,
 }
