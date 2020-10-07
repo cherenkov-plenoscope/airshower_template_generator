@@ -3,6 +3,8 @@ from . import bins
 from . import query
 from . import plot
 from . import model
+from . import quality
+from . import parallel_counter
 
 import numpy as np
 import corsika_primary_wrapper as cpw
