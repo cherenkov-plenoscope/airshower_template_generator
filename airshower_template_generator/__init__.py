@@ -2,6 +2,7 @@ from . import examples
 from . import bins
 from . import query
 from . import plot
+from . import model
 
 import numpy as np
 import corsika_primary_wrapper as cpw

@@ -25,7 +25,7 @@ def lorentz_moyal_longitidinal(
     )
 
 
-def my_model(c_deg, moyal_peak_deg, tail_direction, width_deg):
+def my_moyal_model(c_deg, moyal_peak_deg, tail_direction, width_deg):
     moyal_density = (1.0 - tail_direction) * lorentz_moyal_longitidinal(
         c_deg=c_deg, peak_deg=moyal_peak_deg, width_deg=width_deg,
     )
