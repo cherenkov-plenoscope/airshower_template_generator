@@ -514,6 +514,7 @@ def reduce(work_dir):
                 dtype=np.int64,
             )
 
+            print("reduce intermediate map-results")
             for energy_bin in range(binning["energy_GeV"]["num_bins"]):
                 energy_key = "energy_bin_{:06d}".format(energy_bin)
                 map_site_particle_energy_dir = os.path.join(
@@ -540,6 +541,7 @@ def reduce(work_dir):
             # normalize
             # =========
 
+            print("normalize light-field")
             pixel_solid_angle_sr = solid_angle_of_pixel_sr(binning=binning)
             aperture_area_m2 = area_of_aperture_m2(binning=binning)
             pixel_width_rad = parallel_pixel_width_rad(binning=binning)
@@ -548,7 +550,7 @@ def reduce(work_dir):
             num_para = binning["image_parallel_deg"]["num_bins"]
             num_perp = binning["image_perpendicular_deg"]["num_bins"]
             num_time = binning["time_s"]["num_bins"]
-
+]
             nan_img = np.nan * np.ones(shape=(num_para, num_perp))
             nan_tmg = np.nan * np.ones(shape=(num_para, num_time))
 
@@ -575,11 +577,35 @@ def reduce(work_dir):
                                 cer[ene, azi, rad, alt] = nan_img
                                 ter[ene, azi, rad, alt] = nan_tmg
 
+            print("estimate leakage")
+            leakage_mask = zeros(
+                keys=[
+                    "energy_GeV",
+                    "azimuth_deg",
+                    "radius_m",
+                    "altitude_m",
+                ],
+                binning=binning,
+                dtype=np.uint8
+            )
+            for ene in range(binning["energy_GeV"]["num_bins"]):
+                for azi in range(binning["azimuth_deg"]["num_bins"]):
+                    for rad in range(binning["radius_m"]["num_bins"]):
+                        for alt in range(binning["altitude_m"]["num_bins"]):
+
+                            leak = quality.estimate_leakage(
+                                image=cer[ene, azi, rad, alt],
+                                num_pixel_outer_rim=1
+                            )
+                            leakage_mask[ene, azi, rad, alt] = leak > 5e-5
+
+            print("write result")
             out = {
                 "binning": binning,
                 "cherenkov.density.ene_azi_rad_alt_par_per": cer,
                 "cherenkov.density.ene_azi_rad_alt_par_tim": ter,
                 "airshower.histogram.ene_alt": num_airshowers,
+                "quality.leakage.ene_azi_rad_alt": leakage_mask,
             }
             reduce_site_particle_dir = os.path.join(
                 reduce_dir, site_key, particle_key
@@ -614,6 +640,13 @@ def write_raw(raw_look_up, path):
     assert num.shape[0] == _b["energy_GeV"]["num_bins"]
     assert num.shape[1] == _b["altitude_m"]["num_bins"]
 
+    q_leakage = raw_look_up["quality.leakage.ene_azi_rad_alt"]
+    assert q_leakage.dtype == np.uint8
+    assert q_leakage.shape[0] == _b["energy_GeV"]["num_bins"]
+    assert q_leakage.shape[1] == _b["azimuth_deg"]["num_bins"]
+    assert q_leakage.shape[2] == _b["radius_m"]["num_bins"]
+    assert q_leakage.shape[3] == _b["altitude_m"]["num_bins"]
+
     with tempfile.TemporaryDirectory(prefix="atg_") as tmp_dir:
         tmp_path = os.path.join(tmp_dir, "raw_look_up.tar")
         with tarfile.TarFile(tmp_path, "w") as tar_obj:
@@ -638,6 +671,11 @@ def write_raw(raw_look_up, path):
                 tar_obj=tar_obj,
                 name="airshower.histogram.ene_alt.int64.gz",
                 payload_bytes=gzip.compress(data=num.tobytes(order="c"),),
+            )
+            append_tar(
+                tar_obj=tar_obj,
+                name="quality.leakage.ene_azi_rad_alt.uint8.gz",
+                payload_bytes=gzip.compress(data=q_leakage.tobytes(order="c"),),
             )
         nfs.move(src=tmp_path, dst=path)
 
@@ -686,5 +724,18 @@ def read_raw(path):
             shape=(_b["energy_GeV"]["num_bins"], _b["altitude_m"]["num_bins"]),
             dtype=np.int64,
         )
+
+        out["quality.leakage.ene_azi_rad_alt"] = _tar_read_and_reshape(
+            tar_obj=tar_obj,
+            name="quality.leakage.ene_azi_rad_alt.uint8.gz",
+            shape=(
+                _b["energy_GeV"]["num_bins"],
+                _b["azimuth_deg"]["num_bins"],
+                _b["radius_m"]["num_bins"],
+                _b["altitude_m"]["num_bins"],
+            ),
+            dtype=np.uint8,
+        )
+
     out["explicit_binning"] = bins.make_explicit_binning(out["binning"])
     return out
