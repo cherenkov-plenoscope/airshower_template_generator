@@ -257,46 +257,6 @@ for cord in outlier_cords:
     bell_para_fix[ene, azi, rad, alt, 1] = np.mean(reps1)
 
 
-"""
-for ene in np.arange(0, binning["energy_GeV"]["num_bins"], 2):
-    for azi in np.arange(0, binning["azimuth_deg"]["num_bins"], 3):
-        for rad in np.arange(0, binning["radius_m"]["num_bins"], 4):
-            for alt in np.arange(0, binning["altitude_m"]["num_bins"], 2):
-
-                if not population_ene_alt[ene, alt]:
-                    continue
-
-                I_lut = cer_para[ene, azi, rad, alt]
-                I_lut /= np.sum(I_lut)
-
-                I_best_model = atg.model.gaussian_bell_1d(
-                    c_deg=ebinning["image_parallel_deg"]["supports"],
-                    peak_deg=bell_para[ene, azi, rad, alt, 0],
-                    width_deg=bell_para[ene, azi, rad, alt, 1],
-                )
-                I_best_model /= np.sum(I_best_model)
-
-
-                plt.figure()
-                plt.plot(
-                    ebinning["image_parallel_deg"]["supports"],
-                    I_lut,
-                    "r",
-                    alpha=0.5,
-                )
-                plt.plot(
-                    ebinning["image_parallel_deg"]["supports"],
-                    I_best_model,
-                    "b",
-                    alpha=0.5,
-                )
-                plt.savefig(
-                    "fit_bell_{:02d}_{:02d}_{:02d}_{:02d}_mod.jpg".format(
-                        ene, azi, rad, alt
-                    )
-                )
-                plt.close("all")
-"""
 scale = 2
 azi = 0
 for ene in range(binning["energy_GeV"]["num_bins"]):
