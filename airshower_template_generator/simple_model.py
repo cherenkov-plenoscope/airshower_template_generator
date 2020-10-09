@@ -275,7 +275,7 @@ out["max_rad_at.ene_azi_alt"] = max_rad_at_ene_azi_alt
 json_numpy.write(
     out_dict=out,
     path=os.path.join(lut_dir, "bell_model", "bell_model.json"),
-    indent=0
+    indent=4
 )
 
 
