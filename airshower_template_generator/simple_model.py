@@ -1,20 +1,22 @@
+#!/usr/bin/python
 import numpy as np
 import airshower_template_generator as atg
 from iminuit import Minuit
 import sys
 import os
-import pandas as pd
 import json
 from plenoirf import json_numpy
+from plenoirf.summary import argv_since_py
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+argv = argv_since_py(sys.argv)
 
 # input
 # -----
-lut_dir = "2020-09-26_gamma_lut"
+lut_dir = argv[1]
 lut = atg.input_output.read_raw(
     os.path.join(lut_dir, "reduce", "namibia", "gamma", "raw.tar")
 )
@@ -263,6 +265,8 @@ for cord in outlier_cords:
 
 # export
 # ------
+os.makedirs(os.path.join(lut_dir, "bell_model"), exist_ok=True)
+
 out = {}
 out["bell_par.ene_azi_rad_alt"] = bell_para_fix
 out["bell_per.ene_azi_rad_alt"] = bell_perp
@@ -270,9 +274,10 @@ out["population.ene_alt"] = population_ene_alt
 out["max_rad_at.ene_azi_alt"] = max_rad_at_ene_azi_alt
 json_numpy.write(
     out_dict=out,
-    path=os.path.join(lut_dir, "bell_model.json"),
+    path=os.path.join(lut_dir, "bell_model", "bell_model.json"),
     indent=0
 )
+
 
 
 scale = 2
@@ -357,10 +362,8 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
         ax_perp.plot(400, 0.17, "ro")
         ax_perp.text(s="outlier", x=410, y=0.17)
 
-
-        fig.savefig(
-            "simple_bell_model_ene{:02d}_azi{:02d}_alt{:02d}.jpg".format(
-                ene, azi, alt
-            )
+        fname = "simple_bell_model_ene{:02d}_azi{:02d}_alt{:02d}.jpg".format(
+            ene, azi, alt
         )
+        fig.savefig(os.path.join(lut_dir, "bell_model", fname))
         plt.close(fig)
