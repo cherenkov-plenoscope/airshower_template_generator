@@ -5,6 +5,7 @@ import sys
 import os
 import pandas as pd
 import json
+from plenoirf import json_numpy
 
 import matplotlib
 matplotlib.use("Agg")
@@ -13,7 +14,10 @@ import matplotlib.pyplot as plt
 
 # input
 # -----
-lut = atg.read_raw("2020-09-26_gamma_lut/reduce/namibia/gamma/raw.tar")
+lut_dir = "2020-09-26_gamma_lut"
+lut = atg.input_output.read_raw(
+    os.path.join(lut_dir, "reduce", "namibia", "gamma", "raw.tar")
+)
 binning = lut["binning"]
 ebinning = lut["explicit_binning"]
 
@@ -114,7 +118,7 @@ bell_perp = np.nan * np.ones(
 num_para = binning["image_parallel_deg"]["num_bins"]
 para_edge_idx = int(num_para*0.95)
 
-max_valid_radius = np.zeros(
+max_rad_at_ene_azi_alt = np.zeros(
     shape=(
         binning["energy_GeV"]["num_bins"],
         binning["azimuth_deg"]["num_bins"],
@@ -144,7 +148,7 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
                     # stop radius component all together. Break to next azimuth
                     break
                 else:
-                    max_valid_radius[ene, azi, alt] += 1
+                    max_rad_at_ene_azi_alt[ene, azi, alt] += 1
 
 
                 bell_fit_para = BellFit(
@@ -212,7 +216,7 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
             azi_stop = np.min([azi + 1, binning["azimuth_deg"]["num_bins"]])
             fazi = np.arange(azi_start, azi_stop, 1)
 
-            _rad_num_bins = max_valid_radius[ene, azi, alt]
+            _rad_num_bins = max_rad_at_ene_azi_alt[ene, azi, alt]
 
             for rad in range(_rad_num_bins):
 
@@ -248,13 +252,27 @@ for cord in outlier_cords:
         reps0.append(bell_para[ene, azi, rad_l, alt, 0])
         reps1.append(bell_para[ene, azi, rad_l, alt, 1])
 
-    _rad_num_bins = max_valid_radius[ene, azi, alt]
+    _rad_num_bins = max_rad_at_ene_azi_alt[ene, azi, alt]
     if rad_u < _rad_num_bins:
         reps0.append(bell_para[ene, azi, rad_u, alt, 0])
         reps1.append(bell_para[ene, azi, rad_u, alt, 1])
 
     bell_para_fix[ene, azi, rad, alt, 0] = np.mean(reps0)
     bell_para_fix[ene, azi, rad, alt, 1] = np.mean(reps1)
+
+
+# export
+# ------
+out = {}
+out["bell_par.ene_azi_rad_alt"] = bell_para_fix
+out["bell_per.ene_azi_rad_alt"] = bell_perp
+out["population.ene_alt"] = population_ene_alt
+out["max_rad_at.ene_azi_alt"] = max_rad_at_ene_azi_alt
+json_numpy.write(
+    out_dict=out,
+    path=os.path.join(lut_dir, "bell_model.json"),
+    indent=0
+)
 
 
 scale = 2

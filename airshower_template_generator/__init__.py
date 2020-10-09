@@ -3,7 +3,6 @@ from . import bins
 from . import query
 from . import plot
 from . import model
-from . import bell_model
 from . import quality
 from . import parallel_counter
 from . import input_output
