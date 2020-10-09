@@ -550,7 +550,7 @@ def reduce(work_dir):
             num_para = binning["image_parallel_deg"]["num_bins"]
             num_perp = binning["image_perpendicular_deg"]["num_bins"]
             num_time = binning["time_s"]["num_bins"]
-]
+
             nan_img = np.nan * np.ones(shape=(num_para, num_perp))
             nan_tmg = np.nan * np.ones(shape=(num_para, num_time))
 
