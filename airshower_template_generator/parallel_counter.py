@@ -15,16 +15,12 @@ def init(counter_path, binning):
 
     for energy_bin_idx in range(binning["energy_GeV"]["num_bins"]):
         ene_name = ENERGY_TMPLATE.format(energy_bin_idx)
-        os.makedirs(
-            os.path.join(counter_path, ene_name),
-            exist_ok=True
-        )
+        os.makedirs(os.path.join(counter_path, ene_name), exist_ok=True)
 
         for altitude_bin_idx in range(binning["altitude_m"]["num_bins"]):
             alt_name = ALTITUDE_TMPLATE.format(altitude_bin_idx)
             os.makedirs(
-                os.path.join(counter_path, ene_name, alt_name),
-                exist_ok=True
+                os.path.join(counter_path, ene_name, alt_name), exist_ok=True
             )
 
 

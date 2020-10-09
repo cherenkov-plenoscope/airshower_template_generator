@@ -309,7 +309,7 @@ def run_job(job):
 
                         meets = xy_tree.query_ball_point(
                             x=xy_supports[azi][rad][probe],
-                            r=job["binning"]["aperture_radius_m"]
+                            r=job["binning"]["aperture_radius_m"],
                         )
 
                         surround_meets = xy_tree.query_ball_point(
@@ -348,7 +348,10 @@ def run_job(job):
                                 x=cer_cpara,
                                 y=cer_cperp,
                                 weights=cer_bunch_size,
-                                bins=(c_para_bin_edges_rad, c_perp_bin_edges_rad),
+                                bins=(
+                                    c_para_bin_edges_rad,
+                                    c_perp_bin_edges_rad,
+                                ),
                             )[0]
 
                             cer_relative_time_s = (
@@ -371,9 +374,9 @@ def run_job(job):
 
         tmp_result_path = os.path.join(tmp_dir, "result.tar")
         with open(corsika_o_path, "rb") as fin:
-            corsika_o=fin.read()
+            corsika_o = fin.read()
         with open(corsika_e_path, "rb") as fin:
-            corsika_e=fin.read()
+            corsika_e = fin.read()
         input_output.write_map_result(
             path=tmp_result_path,
             job=job,
@@ -494,14 +497,9 @@ def reduce(work_dir):
 
             print("estimate leakage")
             leakage_mask = zeros(
-                keys=[
-                    "energy_GeV",
-                    "azimuth_deg",
-                    "radius_m",
-                    "altitude_m",
-                ],
+                keys=["energy_GeV", "azimuth_deg", "radius_m", "altitude_m",],
                 binning=binning,
-                dtype=np.uint8
+                dtype=np.uint8,
             )
             for ene in range(binning["energy_GeV"]["num_bins"]):
                 for azi in range(binning["azimuth_deg"]["num_bins"]):
@@ -510,7 +508,7 @@ def reduce(work_dir):
 
                             leak = quality.estimate_leakage(
                                 image=cer[ene, azi, rad, alt],
-                                num_pixel_outer_rim=1
+                                num_pixel_outer_rim=1,
                             )
                             leakage_mask[ene, azi, rad, alt] = leak > 5e-5
 
@@ -528,5 +526,5 @@ def reduce(work_dir):
             os.makedirs(reduce_site_particle_dir, exist_ok=True)
             input_output.write_raw(
                 raw_look_up=out,
-                path=os.path.join(reduce_site_particle_dir, "raw.tar")
+                path=os.path.join(reduce_site_particle_dir, "raw.tar"),
             )

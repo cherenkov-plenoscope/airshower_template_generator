@@ -49,7 +49,9 @@ def read_bell_model_lut(path):
     return lut
 
 
-def query_bell_model(bell_model_lut, energy_GeV, azimuth_deg, radius_m, altitude_m):
+def query_bell_model(
+    bell_model_lut, energy_GeV, azimuth_deg, radius_m, altitude_m
+):
     lut = bell_model_lut
     b = bins.find_bins(
         explicit_binning=lut["explicit_binning"],
@@ -74,12 +76,19 @@ def query_bell_model(bell_model_lut, energy_GeV, azimuth_deg, radius_m, altitude
             for azi in b["azimuth_deg"]:
                 for rad in b["radius_m"]:
 
-                    assert rad["bin"] <= lut["max_rad_at.ene_azi_alt"][
-                        ene["bin"], azi["bin"], alt["bin"]
-                    ]
+                    assert (
+                        rad["bin"]
+                        <= lut["max_rad_at.ene_azi_alt"][
+                            ene["bin"], azi["bin"], alt["bin"]
+                        ]
+                    )
 
-                    slice_par = lutpar[ene["bin"], azi["bin"], rad["bin"], alt["bin"]]
-                    slice_per = lutper[ene["bin"], azi["bin"], rad["bin"], alt["bin"]]
+                    slice_par = lutpar[
+                        ene["bin"], azi["bin"], rad["bin"], alt["bin"]
+                    ]
+                    slice_per = lutper[
+                        ene["bin"], azi["bin"], rad["bin"], alt["bin"]
+                    ]
 
                     weight = (
                         ene["weight"]
@@ -91,4 +100,4 @@ def query_bell_model(bell_model_lut, energy_GeV, azimuth_deg, radius_m, altitude
                     avg_par = avg_par + slice_par * weight
                     avg_per = avg_per + slice_per * weight
     sum_weights = np.sum(weights)
-    return (avg_par / sum_weights, avg_per / sum_weights) 
+    return (avg_par / sum_weights, avg_per / sum_weights)

@@ -86,7 +86,9 @@ def write_raw(raw_look_up, path):
             _tar_append(
                 tar_obj=tar_obj,
                 name="quality.leakage.ene_azi_rad_alt.uint8.gz",
-                payload_bytes=gzip.compress(data=q_leakage.tobytes(order="c"),),
+                payload_bytes=gzip.compress(
+                    data=q_leakage.tobytes(order="c"),
+                ),
             )
         nfs.move(src=tmp_path, dst=path)
 

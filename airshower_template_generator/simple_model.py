@@ -9,6 +9,7 @@ from plenoirf import json_numpy
 from plenoirf.summary import argv_since_py
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -31,7 +32,7 @@ population_ene_alt = np.zeros(
         binning["energy_GeV"]["num_bins"],
         binning["altitude_m"]["num_bins"],
     ),
-    dtype=np.int8
+    dtype=np.int8,
 )
 E_MIN_GEV = 1e3
 for ene in range(binning["energy_GeV"]["num_bins"]):
@@ -51,7 +52,7 @@ cer_para = np.zeros(
         binning["altitude_m"]["num_bins"],
         binning["image_parallel_deg"]["num_bins"],
     ),
-    dtype=np.float32
+    dtype=np.float32,
 )
 
 cer_perp = np.zeros(
@@ -62,7 +63,7 @@ cer_perp = np.zeros(
         binning["altitude_m"]["num_bins"],
         binning["image_perpendicular_deg"]["num_bins"],
     ),
-    dtype=np.float32
+    dtype=np.float32,
 )
 
 for ene in range(binning["energy_GeV"]["num_bins"]):
@@ -70,13 +71,14 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
         for rad in range(binning["radius_m"]["num_bins"]):
             for alt in range(binning["altitude_m"]["num_bins"]):
                 img = lut["cherenkov.density.ene_azi_rad_alt_par_per"][
-                        ene, azi, rad, alt, :, :
-                    ]
+                    ene, azi, rad, alt, :, :
+                ]
                 cer_para[ene, azi, rad, alt, :] = np.sum(img, axis=1)
                 cer_perp[ene, azi, rad, alt, :] = np.sum(img, axis=0)
 
 # model
 # -----
+
 
 class BellFit:
     def __init__(self, cer, supports):
@@ -87,9 +89,7 @@ class BellFit:
 
     def fcn(self, peak_deg, width_deg):
         cer_model = atg.model.gaussian_bell_1d(
-            c_deg=self.supports,
-            peak_deg=peak_deg,
-            width_deg=width_deg,
+            c_deg=self.supports, peak_deg=peak_deg, width_deg=width_deg,
         )
         cer_model /= np.sum(cer_model)
         square_diff_image = (self.cer - cer_model) ** 2
@@ -97,13 +97,13 @@ class BellFit:
         return diff
 
 
-bell_para =  np.nan * np.ones(
+bell_para = np.nan * np.ones(
     shape=(
         binning["energy_GeV"]["num_bins"],
         binning["azimuth_deg"]["num_bins"],
         binning["radius_m"]["num_bins"],
         binning["altitude_m"]["num_bins"],
-        2
+        2,
     )
 )
 
@@ -113,12 +113,12 @@ bell_perp = np.nan * np.ones(
         binning["azimuth_deg"]["num_bins"],
         binning["radius_m"]["num_bins"],
         binning["altitude_m"]["num_bins"],
-        2
+        2,
     )
 )
 
 num_para = binning["image_parallel_deg"]["num_bins"]
-para_edge_idx = int(num_para*0.95)
+para_edge_idx = int(num_para * 0.95)
 
 max_rad_at_ene_azi_alt = np.zeros(
     shape=(
@@ -126,7 +126,7 @@ max_rad_at_ene_azi_alt = np.zeros(
         binning["azimuth_deg"]["num_bins"],
         binning["altitude_m"]["num_bins"],
     ),
-    dtype=np.int8
+    dtype=np.int8,
 )
 
 # fit simple bell model
@@ -151,7 +151,6 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
                     break
                 else:
                     max_rad_at_ene_azi_alt[ene, azi, alt] += 1
-
 
                 bell_fit_para = BellFit(
                     cer=cer_para_slice,
@@ -273,7 +272,7 @@ out["max_rad_at.ene_azi_alt"] = max_rad_at_ene_azi_alt
 json_numpy.write(
     out_dict=out,
     path=os.path.join(lut_dir, "bell_model", "bell_model.json"),
-    indent=4
+    indent=4,
 )
 
 
@@ -284,7 +283,7 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
         if not population_ene_alt[ene, alt]:
             continue
 
-        fig = plt.figure(figsize=(16/scale,9/scale), dpi=100)
+        fig = plt.figure(figsize=(16 / scale, 9 / scale), dpi=100)
         ax_para = fig.add_axes([0.1, 0.1, 0.8, 0.4])
 
         ax_para.plot(
@@ -311,7 +310,7 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
         ax_para.set_xlim(
             [
                 binning["radius_m"]["start_support"],
-                binning["radius_m"]["stop_support"]
+                binning["radius_m"]["stop_support"],
             ]
         )
         ax_para.set_ylim([0, 5.0])
@@ -320,7 +319,6 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
         ax_para.spines["top"].set_color("none")
         ax_para.spines["right"].set_color("none")
         ax_para.grid(color="k", linestyle="-", linewidth=0.66, alpha=0.1)
-
 
         ax_perp = fig.add_axes([0.1, 0.55, 0.8, 0.4])
         ax_perp.plot(
@@ -336,10 +334,10 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
         ax_perp.set_xlim(
             [
                 binning["radius_m"]["start_support"],
-                binning["radius_m"]["stop_support"]
+                binning["radius_m"]["stop_support"],
             ]
         )
-        ax_perp.set_ylim([-.05, .2])
+        ax_perp.set_ylim([-0.05, 0.2])
         ax_perp.set_ylabel("transversal direction / 1$^{\\circ}$")
         ax_perp.spines["top"].set_color("none")
         ax_perp.spines["right"].set_color("none")
@@ -348,7 +346,7 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
         ax_perp.set_title(
             "energy {: 4.1f}GeV, altitude {: 4.1f}km".format(
                 ebinning["energy_GeV"]["supports"][ene],
-                1e-3*ebinning["altitude_m"]["supports"][alt]
+                1e-3 * ebinning["altitude_m"]["supports"][alt],
             )
         )
 
