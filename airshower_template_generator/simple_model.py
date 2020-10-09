@@ -164,8 +164,6 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
                     width_deg=1.0,
                     limit_peak_deg=[-0.0, 5.5],
                     limit_width_deg=[0.01, 10.0],
-                    error_peak_deg=0.01,
-                    error_width_deg=0.01,
                     errordef=Minuit.LEAST_SQUARES,
                     print_level=0,
                 )
@@ -184,8 +182,6 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
                     width_deg=0.5,
                     limit_peak_deg=[-0.5, 0.5],
                     limit_width_deg=[0.01, 10.0],
-                    error_peak_deg=0.01,
-                    error_width_deg=0.01,
                     errordef=Minuit.LEAST_SQUARES,
                     print_level=0,
                 )
@@ -268,6 +264,8 @@ for cord in outlier_cords:
 os.makedirs(os.path.join(lut_dir, "bell_model"), exist_ok=True)
 
 out = {}
+out["binning"] = binning
+out["explicit_binning"] = atg.bins.make_explicit_binning(binning)
 out["bell_par.ene_azi_rad_alt"] = bell_para_fix
 out["bell_per.ene_azi_rad_alt"] = bell_perp
 out["population.ene_alt"] = population_ene_alt
@@ -277,7 +275,6 @@ json_numpy.write(
     path=os.path.join(lut_dir, "bell_model", "bell_model.json"),
     indent=4
 )
-
 
 
 scale = 2
