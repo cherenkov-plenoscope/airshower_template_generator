@@ -158,6 +158,8 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
                     width_deg=1.0,
                     limit_peak_deg=[-0.0, 5.5],
                     limit_width_deg=[0.01, 10.0],
+                    error_peak_deg=0.01,
+                    error_width_deg=0.01,
                     errordef=Minuit.LEAST_SQUARES,
                     print_level=0,
                 )
@@ -176,6 +178,8 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
                     width_deg=0.5,
                     limit_peak_deg=[-0.5, 0.5],
                     limit_width_deg=[0.01, 10.0],
+                    error_peak_deg=0.01,
+                    error_width_deg=0.01,
                     errordef=Minuit.LEAST_SQUARES,
                     print_level=0,
                 )
@@ -187,7 +191,6 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
 # detect outliers
 # ---------------
 D_PEAK_MAX = 0.3
-
 outlier_cords = []
 for ene in range(binning["energy_GeV"]["num_bins"]):
 
@@ -230,8 +233,8 @@ for ene in range(binning["energy_GeV"]["num_bins"]):
                 if np.abs(med - nom) > D_PEAK_MAX:
                     outlier_cords.append((ene, azi, rad, alt))
 
-
-
+# replace outliers
+# ----------------
 bell_para_fix = np.array(bell_para)
 for cord in outlier_cords:
     ene, azi, rad, alt = cord
