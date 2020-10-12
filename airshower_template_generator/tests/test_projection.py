@@ -7,7 +7,7 @@ def is_near(a, b, absolute=1e-6):
 
 
 def test_zero():
-    cpara, cperp = atg.project_light_field_onto_source_image(
+    cpara, cperp = atg.projection.project_light_field_onto_source_image(
         cer_cx_rad=0.0,
         cer_cy_rad=0.0,
         cer_x_m=0.0,
@@ -24,7 +24,7 @@ def test_zero():
 def test_xy_does_not_matter_when_pointing_to_zero():
     for cer_x in np.linspace(-1e3, 1e3, 10):
         for cer_y in np.linspace(-1e3, 1e3, 10):
-            cpara, cperp = atg.project_light_field_onto_source_image(
+            cpara, cperp = atg.projection.project_light_field_onto_source_image(
                 cer_cx_rad=0.0,
                 cer_cy_rad=0.0,
                 cer_x_m=cer_x,
@@ -41,7 +41,7 @@ def test_xy_does_not_matter_when_pointing_to_zero():
 def test_core_xy_does_not_matter_when_pointing_to_zero():
     for core_x in np.linspace(-1e3, 1e3, 10):
         for core_y in np.linspace(-1e3, 1e3, 10):
-            cpara, cperp = atg.project_light_field_onto_source_image(
+            cpara, cperp = atg.projection.project_light_field_onto_source_image(
                 cer_cx_rad=0.0,
                 cer_cy_rad=0.0,
                 cer_x_m=0.0,
@@ -69,7 +69,7 @@ def test_parallel_on_x_axis():
     """
     for cer_cx in np.linspace(-0.1, 0.1, 10):
         for cer_cy in np.linspace(-0.1, 0.1, 10):
-            cpara, cperp = atg.project_light_field_onto_source_image(
+            cpara, cperp = atg.projection.project_light_field_onto_source_image(
                 cer_cx_rad=cer_cx,
                 cer_cy_rad=cer_cy,
                 cer_x_m=1.0,
@@ -100,7 +100,7 @@ def test_parallel_on_y_axis():
     offset_y = 1.0
     for cer_cx in np.linspace(-0.1, 0.1, 10):
         for cer_cy in np.linspace(-0.1, 0.1, 10):
-            cpara, cperp = atg.project_light_field_onto_source_image(
+            cpara, cperp = atg.projection.project_light_field_onto_source_image(
                 cer_cx_rad=cer_cx,
                 cer_cy_rad=cer_cy,
                 cer_x_m=0.0,
@@ -113,7 +113,7 @@ def test_parallel_on_y_axis():
             assert is_near(cpara, cer_cy)
             assert is_near(cperp, -cer_cx)
 
-            cpara2, cperp2 = atg.project_light_field_onto_source_image(
+            cpara2, cperp2 = atg.projection.project_light_field_onto_source_image(
                 cer_cx_rad=cer_cx,
                 cer_cy_rad=cer_cy,
                 cer_x_m=0.0,
@@ -143,7 +143,7 @@ def test_c_parallel_anitparallel_to_y_axis():
     offset_y = 1.0
     for cer_cx in np.linspace(-0.1, 0.1, 10):
         for cer_cy in np.linspace(-0.1, 0.1, 10):
-            cpara, cperp = atg.project_light_field_onto_source_image(
+            cpara, cperp = atg.projection.project_light_field_onto_source_image(
                 cer_cx_rad=cer_cx,
                 cer_cy_rad=cer_cy,
                 cer_x_m=0.0,
@@ -156,7 +156,7 @@ def test_c_parallel_anitparallel_to_y_axis():
             assert is_near(cpara, -cer_cy)
             assert is_near(cperp, cer_cx)
 
-            cpara2, cperp2 = atg.project_light_field_onto_source_image(
+            cpara2, cperp2 = atg.projection.project_light_field_onto_source_image(
                 cer_cx_rad=cer_cx,
                 cer_cy_rad=cer_cy,
                 cer_x_m=0.0,

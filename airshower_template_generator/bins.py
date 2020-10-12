@@ -137,37 +137,53 @@ def full_coverage_xy_supports_on_observationlevel(binning):
     return xy_supports
 
 
-def find_bins(explicit_binning, energy_GeV, altitude_m, azimuth_deg, radius_m):
-    _eb = explicit_binning
-
+def find_energy_bins(explicit_binning, energy_GeV):
     ene = find_bins_in_centers(
-        bin_centers=_eb["energy_GeV"]["log10_supports"],
+        bin_centers=explicit_binning["energy_GeV"]["log10_supports"],
         value=np.log10(energy_GeV),
     )
     if ene["overflow"] or ene["underflow"]:
         raise IndexError("energy {:.3e}GeV out of range".format(energy_GeV))
+    return ene
 
+
+def find_azimuth_bins(explicit_binning, azimuth_deg):
     azi = find_bins_in_centers(
-        bin_centers=_eb["azimuth_deg"]["edges"],
+        bin_centers=explicit_binning["azimuth_deg"]["edges"],
         value=modulo_azimuth_range(azimuth_deg=azimuth_deg),
     )
     if azi["overflow"] or azi["underflow"]:
         raise IndexError("azimuth {:.3e}deg out of range".format(azimuth_deg))
-    num_azimuths_supports = len(_eb["azimuth_deg"]["supports"])
+    num_azimuths_supports = len(explicit_binning["azimuth_deg"]["supports"])
     if azi["upper_bin"] == num_azimuths_supports:
         azi["upper_bin"] = 0
+    return azi
 
+
+def find_altitude_bins(explicit_binning, altitude_m):
     alt = find_bins_in_centers(
-        bin_centers=_eb["altitude_m"]["supports"], value=altitude_m
+        bin_centers=explicit_binning["altitude_m"]["supports"],
+        value=altitude_m
     )
     if alt["overflow"] or alt["underflow"]:
         raise IndexError("altitude {:.3e}m out of range".format(altitude_m))
+    return alt
 
+
+def find_radius_bins(explicit_binning, radius_m):
     rad = find_bins_in_centers(
-        bin_centers=_eb["radius_m"]["supports"], value=radius_m
+        bin_centers=explicit_binning["radius_m"]["supports"], value=radius_m
     )
     if rad["overflow"] or rad["underflow"]:
         raise IndexError("radius {:.3e}m out of range".format(radius_m))
+    return rad
+
+
+def find_bins(explicit_binning, energy_GeV, altitude_m, azimuth_deg, radius_m):
+    ene = find_energy_bins(explicit_binning, energy_GeV)
+    azi = find_azimuth_bins(explicit_binning, azimuth_deg)
+    alt = find_altitude_bins(explicit_binning, altitude_m)
+    rad = find_radius_bins(explicit_binning, radius_m)
 
     return {
         "energy_GeV": [
