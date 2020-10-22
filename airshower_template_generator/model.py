@@ -10,7 +10,7 @@ from . import projection
 SQRT_TWO_PI = np.sqrt(2.0 * np.pi)
 
 
-def fit_ellipse(cx, cy, ts):
+def fit_ellipse(cx, cy, ts, find_time_gradient=False):
     center_x = np.median(cx)
     center_y = np.median(cy)
 
@@ -32,14 +32,17 @@ def fit_ellipse(cx, cy, ts):
     sin = np.sin(img_azi)
     ccax = ccx * cos - ccy * sin
 
-    try:
-        rr = sklearn.linear_model.RANSACRegressor()
-        rr.fit(X=ccax.reshape([ccax.shape[0], 1]), y=ts)
-        time_slope_slices_per_rad = rr.estimator_.coef_[0]
-        time_slope_ns_per_deg = 0.5*time_slope_slices_per_rad/np.rad2deg(1)
-    except ValueError:
+    if find_time_gradient:
+        try:
+            rr = sklearn.linear_model.RANSACRegressor()
+            rr.fit(X=ccax.reshape([ccax.shape[0], 1]), y=ts)
+            time_slope_slices_per_rad = rr.estimator_.coef_[0]
+            time_slope_ns_per_deg = 0.5*time_slope_slices_per_rad/np.rad2deg(1)
+        except ValueError:
+            time_slope_ns_per_deg = 0.0
+        print("time_slope: ", time_slope_ns_per_deg, "ns/deg")
+    else:
         time_slope_ns_per_deg = 0.0
-    print("time_slope: ", time_slope_ns_per_deg, "ns/deg")
 
     return [center_x, center_y], azis[wheremin], rots[wheremin], rots[wheremax], time_slope_ns_per_deg
 
@@ -113,6 +116,20 @@ def make_image(split_light_field, image_binning=IMAGE_BINNING):
         )
         out[rr, cc] += aa * line_model[1]
     return out
+
+
+def argmax_image_cx_cy_deg(image, image_binning=IMAGE_BINNING):
+    ib = image_binning
+    _cxcy_bin_edges = np.linspace(
+        -ib["radius_deg"],
+        ib["radius_deg"],
+        ib["num_bins"] + 1
+    )
+    _cxcy_bin_centers = 0.5 * (_cxcy_bin_edges[0:-1] + _cxcy_bin_edges[1:])
+    _resp = np.unravel_index(np.argmax(image), image.shape)
+    reco_cx_deg = _cxcy_bin_centers[_resp[1]]
+    reco_cy_deg = _cxcy_bin_centers[_resp[0]]
+    return reco_cx_deg, reco_cy_deg
 
 
 def add_image_to_ax(ax, image, image_binning=IMAGE_BINNING):
