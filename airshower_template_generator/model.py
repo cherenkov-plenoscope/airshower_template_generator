@@ -46,6 +46,30 @@ def fit_ellipse(cx, cy, ts, find_time_gradient=False):
 
     return [center_x, center_y], azis[wheremin], rots[wheremin], rots[wheremax], time_slope_ns_per_deg
 
+
+def fit_ellipse_using_covariance_matrix(cx, cy, ts, find_time_gradient=False):
+    center_x = np.median(cx)
+    center_y = np.median(cy)
+
+    cov_matrix = np.cov(np.c_[cx, cy].T)
+    eigen_vals, eigen_vecs = np.linalg.eig(cov_matrix)
+    major_idx = np.argmax(eigen_vals)
+    if major_idx == 0:
+        minor_idx = 1
+    else:
+        minor_idx = 0
+    major_axis = eigen_vecs[:, major_idx]
+    major_std = np.sqrt(eigen_vals[major_idx])
+    minor_axis = eigen_vecs[:, minor_idx]
+    minor_std = np.sqrt(eigen_vals[minor_idx])
+
+    azimuth = np.arctan2(major_axis[0], major_axis[1])
+    time_slope_ns_per_deg = 0.0
+
+    return [center_x, center_y], azimuth, major_std, minor_std, time_slope_ns_per_deg
+
+
+
 IMAGE_BINNING = {
     "radius_deg": 4.25,
     "num_bins": 128,
@@ -103,7 +127,7 @@ def make_image(split_light_field, image_binning=IMAGE_BINNING):
         if num_ph > 2:
             line_models.append(
                 (
-                    fit_ellipse(cx=img[:, 0], cy=img[:, 1], ts=img[:, 2]),
+                    fit_ellipse_using_covariance_matrix(cx=img[:, 0], cy=img[:, 1], ts=img[:, 2]),
                     float(num_ph)
                 )
             )
