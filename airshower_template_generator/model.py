@@ -9,65 +9,96 @@ from . import projection
 
 SQRT_TWO_PI = np.sqrt(2.0 * np.pi)
 
+MODEL_CONFIG = {
+    "min_num_photons": 3,
+    "min_time_slope_ns_per_deg": 5.0,
+    "max_time_slope_ns_per_deg": 100.0,
+}
 
-def fit_ellipse(cx, cy, ts, find_time_gradient=False):
-    center_x = np.median(cx)
-    center_y = np.median(cy)
+def project_onto_main_axis(cx, cy, ellipse_model):
+    ccx = cx - ellipse_model["center_cx"]
+    ccy = cy - ellipse_model["center_cy"]
+    _cos = np.cos(ellipse_model["azimuth_rad"])
+    _sin = np.sin(ellipse_model["azimuth_rad"])
+    ccax = ccx * _cos - ccy * _sin
+    return ccax
 
-    ccx = cx - center_x
-    ccy = cy - center_y
 
-    rots = np.zeros(360)
-    azis = np.linspace(0.0, np.pi, 360, endpoint=False)
-    for ii, img_azi in enumerate(azis):
-        cos = np.cos(img_azi)
-        sin = np.sin(img_azi)
-        ccax = ccx * cos - ccy * sin
-        rots[ii] = np.std(ccax)
-    wheremin = np.argmin(rots)
-    wheremax = np.argmax(rots)
+def estimate_time_slope(c_main_axis, ts):
+    ccax_deg = np.rad2deg(c_main_axis)
+    ts_ns = 0.5 * ts
 
-    min_azi = azis[wheremin]
-    cos = np.cos(img_azi)
-    sin = np.sin(img_azi)
-    ccax = ccx * cos - ccy * sin
+    """
+    if np.min(ccax_deg) != np.min(ccax_deg):
+        linear_model, linear_model_cov = np.polyfit(
+            x=ccax_deg,
+            y=ts_ns,
+            deg=1,
+            cov=True
+        )
+        time_slope_ns_per_deg = linear_model[0]
+        _eig_values, _eig_vectors = np.linalg.eig(linear_model_cov)
+        slope_std = _eig_values[0]
 
-    if find_time_gradient:
-        try:
-            rr = sklearn.linear_model.RANSACRegressor()
-            rr.fit(X=ccax.reshape([ccax.shape[0], 1]), y=ts)
-            time_slope_slices_per_rad = rr.estimator_.coef_[0]
-            time_slope_ns_per_deg = 0.5*time_slope_slices_per_rad/np.rad2deg(1)
-        except ValueError:
-            time_slope_ns_per_deg = 0.0
-        print("time_slope: ", time_slope_ns_per_deg, "ns/deg")
+        if slope_std >= np.abs(0.5*time_slope_ns_per_deg):
+            time_slope_ns_per_deg == 0.0
+
     else:
         time_slope_ns_per_deg = 0.0
+    """
+    try:
+        rr = sklearn.linear_model.RANSACRegressor(min_samples=5)
+        rr.fit(X=ccax_deg.reshape([ccax_deg.shape[0], 1]), y=ts_ns)
+        time_slope_ns_per_deg = rr.estimator_.coef_[0]
+    except ValueError:
+        time_slope_ns_per_deg = 0.0
 
-    return [center_x, center_y], azis[wheremin], rots[wheremin], rots[wheremax], time_slope_ns_per_deg
+    return time_slope_ns_per_deg
 
 
-def fit_ellipse_using_covariance_matrix(cx, cy, ts, find_time_gradient=False):
-    center_x = np.median(cx)
-    center_y = np.median(cy)
+def estimate_ellipse(cx, cy):
+    center_cx = np.median(cx)
+    center_cy = np.median(cy)
 
     cov_matrix = np.cov(np.c_[cx, cy].T)
-    eigen_vals, eigen_vecs = np.linalg.eig(cov_matrix)
-    major_idx = np.argmax(eigen_vals)
+    eigen_values, eigen_vectors = np.linalg.eig(cov_matrix)
+    major_idx = np.argmax(eigen_values)
     if major_idx == 0:
         minor_idx = 1
     else:
         minor_idx = 0
-    major_axis = eigen_vecs[:, major_idx]
-    major_std = np.sqrt(eigen_vals[major_idx])
-    minor_axis = eigen_vecs[:, minor_idx]
-    minor_std = np.sqrt(eigen_vals[minor_idx])
+
+    major_axis = eigen_vectors[:, major_idx]
+    major_std = np.sqrt(np.abs(eigen_values[major_idx]))
+    minor_axis = eigen_vectors[:, minor_idx]
+    minor_std = np.sqrt(np.abs(eigen_values[minor_idx]))
 
     azimuth = np.arctan2(major_axis[0], major_axis[1])
-    time_slope_ns_per_deg = 0.0
+    return {
+        "center_cx": center_cx,
+        "center_cy": center_cy,
+        "azimuth_rad": azimuth,
+        "major_std": major_std,
+        "minor_std": minor_std,
+    }
 
-    return [center_x, center_y], azimuth, major_std, minor_std, time_slope_ns_per_deg
+def estimate_model(cx, cy, ts):
+    assert len(cx) == len(cy)
+    assert len(cx) == len(ts)
 
+    model = estimate_ellipse(cx=cx, cy=cy)
+    model["num_photons_pe"] = float(len(cx))
+
+    c_main_axis = project_onto_main_axis(cx=cx, cy=cy, ellipse_model=model)
+    model["time_slope_ns_per_deg"] = estimate_time_slope(
+        c_main_axis=c_main_axis, ts=ts
+    )
+
+    if model["time_slope_ns_per_deg"] < 0.0:
+        model["azimuth_rad"] += np.pi
+        model["time_slope_ns_per_deg"] *= -1.0
+
+    return model
 
 
 IMAGE_BINNING = {
@@ -75,29 +106,48 @@ IMAGE_BINNING = {
     "num_bins": 128,
 }
 
-def draw_line(line_model, image_binning=IMAGE_BINNING):
-    radius = np.deg2rad(image_binning["radius_deg"])
-    cen_x = line_model[0][0]
-    cen_y = line_model[0][1]
-    azi = line_model[1]
+def _draw_bell(r_px, c_px, major_px, minor_px, azimuth_rad, image_shape, level=5):
+    assert level >= 1
+    arrs = {}
+    for l in range(level):
+        rr, cc = skimage.draw.ellipse(
+            r=r_px,
+            c=c_px,
+            r_radius=major_px * ((l + 1)/level),
+            c_radius=minor_px * ((l + 1)/level),
+            shape=image_shape,
+            rotation=azimuth_rad
+        )
+        idxs = [(rr[i], cc[i]) for i in range(len(rr))]
+        for idx in idxs:
+            if idx in arrs:
+                arrs[idx] += 1/level
+            else:
+                arrs[idx] = 1/level
+    rrs = []
+    ccs = []
+    aas = []
+    for arr in arrs:
+        rrs.append(arr[0])
+        ccs.append(arr[1])
+        aas.append(arrs[arr])
+    return np.array(rrs, dtype=np.int), np.array(ccs, dtype=np.int), np.array(aas)
 
-    time_slope_ns_per_deg = line_model[4]
-    if time_slope_ns_per_deg >= 0.0:
-        azi = azi
-    else:
-        azi =  azi + np.pi
+
+def draw_line_model(model, model_config, image_binning=IMAGE_BINNING):
+    cfg = model_config
+    radius = np.deg2rad(image_binning["radius_deg"])
+    cen_x = model["center_cx"]
+    cen_y = model["center_cy"]
+    azi = model["azimuth_rad"]
+    time_slope_ns_per_deg = model["time_slope_ns_per_deg"]
 
     off_x = radius * np.sin(azi)
     off_y = radius * np.cos(azi)
     start_x = cen_x + off_x
     start_y = cen_y + off_y
-
-    if np.abs(time_slope_ns_per_deg) < 1.0:
-        stop_x = cen_x - off_x
-        stop_y = cen_y - off_y
-    else:
-        stop_x = cen_x
-        stop_y = cen_y
+    stop_x = cen_x - off_x
+    stop_y = cen_y - off_y
 
     pix_per_rad = image_binning["num_bins"]/(2.0*radius)
     center_px = image_binning["num_bins"]//2
@@ -118,27 +168,85 @@ def draw_line(line_model, image_binning=IMAGE_BINNING):
     return rr[valid], cc[valid], aa[valid]
 
 
-def make_image(split_light_field, image_binning=IMAGE_BINNING):
+def draw_model(model, model_config, image_binning=IMAGE_BINNING):
+    cfg = model_config
+    radius = np.deg2rad(image_binning["radius_deg"])
+    cen_x = model["center_cx"]
+    cen_y = model["center_cy"]
+    azi = model["azimuth_rad"]
+    time_slope_ns_per_deg = model["time_slope_ns_per_deg"]
+
+    off_x = radius * np.sin(azi)
+    off_y = radius * np.cos(azi)
+    start_x = cen_x + off_x
+    start_y = cen_y + off_y
+    #stop_x = cen_x - off_x
+    #stop_y = cen_y - off_y
+
+    if np.abs(time_slope_ns_per_deg) > cfg["max_time_slope_ns_per_deg"]:
+        time_can_be_used = False
+    else:
+        time_can_be_used = True
+
+    if time_can_be_used:
+        print("use time", time_slope_ns_per_deg)
+        w = 5 * time_slope_ns_per_deg / cfg["max_time_slope_ns_per_deg"]
+    else:
+        w = 0.0
+
+
+    pix_per_rad = image_binning["num_bins"]/(2.0*radius)
+    center_px = image_binning["num_bins"]//2
+
+    #start_x_px = int(np.round(start_x * pix_per_rad)) + center_px
+    #start_y_px = int(np.round(start_y * pix_per_rad)) + center_px
+    #stop_x_px = int(np.round(stop_x * pix_per_rad)) + center_px
+    #stop_y_px = int(np.round(stop_y * pix_per_rad)) + center_px
+
+    """
+    rr, cc, aa = skimage.draw.line_aa(
+        r0=start_y_px, c0=start_x_px, r1=stop_y_px, c1=stop_x_px
+    )
+    """
+
+    mid_x_px = ((1 - w) * cen_x + w * start_x) * pix_per_rad + center_px
+    mid_y_px = ((1 - w) * cen_y + w * start_y) * pix_per_rad + center_px
+
+    rr, cc, aa = _draw_bell(
+        r_px=mid_y_px,
+        c_px=mid_x_px,
+        major_px=2 * (1 + w) * model["major_std"]*pix_per_rad,
+        minor_px=2 * (1 + w) * model["minor_std"]*pix_per_rad,
+        azimuth_rad=model["azimuth_rad"],
+        image_shape=(image_binning["num_bins"], image_binning["num_bins"])
+    )
+
+    valid_rr = np.logical_and((rr >= 0), (rr < image_binning["num_bins"]))
+    valid_cc = np.logical_and((cc >= 0), (cc < image_binning["num_bins"]))
+    valid = np.logical_and(valid_rr, valid_cc)
+
+    return rr[valid], cc[valid], aa[valid]
+
+
+def make_image(split_light_field, model_config, image_binning=IMAGE_BINNING):
     slf = split_light_field
-    line_models = []
+    models = []
     for pax in range(slf.number_paxel):
         img = slf.image_sequences[pax]
-        num_ph = img.shape[0]
-        if num_ph > 2:
-            line_models.append(
-                (
-                    fit_ellipse_using_covariance_matrix(cx=img[:, 0], cy=img[:, 1], ts=img[:, 2]),
-                    float(num_ph)
-                )
+        num_photons = img.shape[0]
+        if num_photons >= model_config["min_num_photons"]:
+            models.append(
+                estimate_model(cx=img[:, 0], cy=img[:, 1], ts=img[:, 2])
             )
 
     out = np.zeros(shape=(image_binning["num_bins"], image_binning["num_bins"]))
-    for line_model in line_models:
-        rr, cc, aa = draw_line(
-            line_model=line_model[0],
+    for model in models:
+        rr, cc, aa = draw_line_model(
+            model=model,
+            model_config=model_config,
             image_binning=image_binning
         )
-        out[rr, cc] += aa * line_model[1]
+        out[rr, cc] += aa * model["num_photons_pe"]
     return out
 
 
