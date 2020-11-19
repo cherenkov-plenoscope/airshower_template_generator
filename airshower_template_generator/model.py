@@ -12,7 +12,7 @@ SQRT_TWO_PI = np.sqrt(2.0 * np.pi)
 MODEL_CONFIG = {
     "min_num_photons": 3,
     "min_time_slope_ns_per_deg": 5.0,
-    "max_time_slope_ns_per_deg": 100.0,
+    "max_time_slope_ns_per_deg": 7.0,
 }
 
 def project_onto_main_axis(cx, cy, ellipse_model):
@@ -134,16 +134,22 @@ def _draw_bell(r_px, c_px, major_px, minor_px, azimuth_rad, image_shape, level=5
     return np.array(rrs, dtype=np.int), np.array(ccs, dtype=np.int), np.array(aas)
 
 
+def _draw_line(r0, c0, r1, c1, image_shape):
+    rr, cc, aa = skimage.draw.line_aa(r0=r0, c0=c0, r1=r1, c1=c1)
+    valid_rr = np.logical_and((rr >= 0), (rr < image_shape[0]))
+    valid_cc = np.logical_and((cc >= 0), (cc < image_shape[1]))
+    valid = np.logical_and(valid_rr, valid_cc)
+    return rr[valid], cc[valid], aa[valid]
+
+
 def draw_line_model(model, model_config, image_binning=IMAGE_BINNING):
     cfg = model_config
     radius = np.deg2rad(image_binning["radius_deg"])
     cen_x = model["center_cx"]
     cen_y = model["center_cy"]
-    azi = model["azimuth_rad"]
-    time_slope_ns_per_deg = model["time_slope_ns_per_deg"]
 
-    off_x = radius * np.sin(azi)
-    off_y = radius * np.cos(azi)
+    off_x = radius * np.sin(model["azimuth_rad"])
+    off_y = radius * np.cos(model["azimuth_rad"])
     start_x = cen_x + off_x
     start_y = cen_y + off_y
     stop_x = cen_x - off_x
@@ -154,18 +160,18 @@ def draw_line_model(model, model_config, image_binning=IMAGE_BINNING):
 
     start_x_px = int(np.round(start_x * pix_per_rad)) + center_px
     start_y_px = int(np.round(start_y * pix_per_rad)) + center_px
+
     stop_x_px = int(np.round(stop_x * pix_per_rad)) + center_px
     stop_y_px = int(np.round(stop_y * pix_per_rad)) + center_px
 
-    rr, cc, aa = skimage.draw.line_aa(
-        r0=start_y_px, c0=start_x_px, r1=stop_y_px, c1=stop_x_px
+    rr, cc, aa = _draw_line(
+        r0=start_y_px,
+        c0=start_x_px,
+        r1=stop_y_px,
+        c1=stop_x_px,
+        image_shape=(image_binning["num_bins"], image_binning["num_bins"])
     )
-
-    valid_rr = np.logical_and((rr >= 0), (rr < image_binning["num_bins"]))
-    valid_cc = np.logical_and((cc >= 0), (cc < image_binning["num_bins"]))
-    valid = np.logical_and(valid_rr, valid_cc)
-
-    return rr[valid], cc[valid], aa[valid]
+    return rr, cc, aa
 
 
 def draw_model(model, model_config, image_binning=IMAGE_BINNING):
