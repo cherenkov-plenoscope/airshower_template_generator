@@ -82,7 +82,7 @@ def estimate_ellipse(cx, cy):
         "minor_std": minor_std,
     }
 
-def estimate_model(cx, cy, ts):
+def estimate_model_from_image_sequence(cx, cy, ts):
     assert len(cx) == len(cy)
     assert len(cx) == len(ts)
 
@@ -180,8 +180,8 @@ def draw_model(model, model_config, image_binning=IMAGE_BINNING):
     off_y = radius * np.cos(azi)
     start_x = cen_x + off_x
     start_y = cen_y + off_y
-    #stop_x = cen_x - off_x
-    #stop_y = cen_y - off_y
+    stop_x = cen_x - off_x
+    stop_y = cen_y - off_y
 
     if np.abs(time_slope_ns_per_deg) > cfg["max_time_slope_ns_per_deg"]:
         time_can_be_used = False
@@ -209,38 +209,62 @@ def draw_model(model, model_config, image_binning=IMAGE_BINNING):
     )
     """
 
-    mid_x_px = ((1 - w) * cen_x + w * start_x) * pix_per_rad + center_px
-    mid_y_px = ((1 - w) * cen_y + w * start_y) * pix_per_rad + center_px
+    mid1_x_px = ((1 - w) * cen_x + w * start_x) * pix_per_rad + center_px
+    mid1_y_px = ((1 - w) * cen_y + w * start_y) * pix_per_rad + center_px
 
-    rr, cc, aa = _draw_bell(
-        r_px=mid_y_px,
-        c_px=mid_x_px,
+    rr1, cc1, aa1 = _draw_bell(
+        r_px=mid1_y_px,
+        c_px=mid1_x_px,
         major_px=2 * (1 + w) * model["major_std"]*pix_per_rad,
         minor_px=2 * (1 + w) * model["minor_std"]*pix_per_rad,
         azimuth_rad=model["azimuth_rad"],
         image_shape=(image_binning["num_bins"], image_binning["num_bins"])
     )
 
-    valid_rr = np.logical_and((rr >= 0), (rr < image_binning["num_bins"]))
-    valid_cc = np.logical_and((cc >= 0), (cc < image_binning["num_bins"]))
-    valid = np.logical_and(valid_rr, valid_cc)
+    valid_rr1 = np.logical_and((rr1 >= 0), (rr1 < image_binning["num_bins"]))
+    valid_cc1 = np.logical_and((cc1 >= 0), (cc1 < image_binning["num_bins"]))
+    valid1 = np.logical_and(valid_rr1, valid_cc1)
 
-    return rr[valid], cc[valid], aa[valid]
+    mid2_x_px = ((1 - w) * cen_x + w * stop_x) * pix_per_rad + center_px
+    mid2_y_px = ((1 - w) * cen_y + w * stop_y) * pix_per_rad + center_px
+
+    rr2, cc2, aa2 = _draw_bell(
+        r_px=mid2_y_px,
+        c_px=mid2_x_px,
+        major_px=2 * (1 + w) * model["major_std"]*pix_per_rad,
+        minor_px=2 * (1 + w) * model["minor_std"]*pix_per_rad,
+        azimuth_rad=model["azimuth_rad"],
+        image_shape=(image_binning["num_bins"], image_binning["num_bins"])
+    )
+
+    valid_rr2 = np.logical_and((rr2 >= 0), (rr2 < image_binning["num_bins"]))
+    valid_cc2 = np.logical_and((cc2 >= 0), (cc2 < image_binning["num_bins"]))
+    valid2 = np.logical_and(valid_rr2, valid_cc2)
+
+    rr = np.concatenate((rr1[valid1], rr2[valid2]))
+    cc = np.concatenate((cc1[valid1], cc2[valid2]))
+    aa = np.concatenate((aa1[valid1], aa2[valid2]))
+
+    return rr, cc, aa
 
 
-def make_image(split_light_field, model_config, image_binning=IMAGE_BINNING):
-    slf = split_light_field
+def estimate_model_from_light_field(split_light_field, model_config):
     models = []
-    for pax in range(slf.number_paxel):
-        img = slf.image_sequences[pax]
+    for pax in range(split_light_field.number_paxel):
+        img = split_light_field.image_sequences[pax]
         num_photons = img.shape[0]
         if num_photons >= model_config["min_num_photons"]:
             models.append(
-                estimate_model(cx=img[:, 0], cy=img[:, 1], ts=img[:, 2])
+                estimate_model_from_image_sequence(
+                    cx=img[:, 0], cy=img[:, 1], ts=img[:, 2]
+                )
             )
+    return models
 
+
+def make_image_from_model(light_field_model, model_config, image_binning=IMAGE_BINNING):
     out = np.zeros(shape=(image_binning["num_bins"], image_binning["num_bins"]))
-    for model in models:
+    for model in light_field_model:
         rr, cc, aa = draw_line_model(
             model=model,
             model_config=model_config,
