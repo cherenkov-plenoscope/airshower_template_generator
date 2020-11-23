@@ -544,8 +544,8 @@ class SplitLightField:
         self.number_photons = lr["photons"]["arrival_time_slices"].shape[0]
 
         self.number_paxel = lfg.number_paxel
-        self.paxel_x = lfg.paxel_pos_x
-        self.paxel_y = lfg.paxel_pos_y
+        self.paxel_pos_x = lfg.paxel_pos_x
+        self.paxel_pos_y = lfg.paxel_pos_y
 
         self.image_sequences = [[] for pax in range(self.number_paxel)]
         ph_pixel, ph_paxel = lfg.pixel_and_paxel_of_lixel(
