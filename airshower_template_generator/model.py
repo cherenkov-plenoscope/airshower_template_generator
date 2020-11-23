@@ -24,9 +24,9 @@ def project_onto_main_axis(cx, cy, ellipse_model):
     return ccax
 
 
-def estimate_time_slope(c_main_axis, ts):
+def estimate_time_slope(c_main_axis, t):
     ccax_deg = np.rad2deg(c_main_axis)
-    ts_ns = 0.5 * ts
+    ts_ns = 1e9 * t
 
     """
     if np.min(ccax_deg) != np.min(ccax_deg):
@@ -82,16 +82,16 @@ def estimate_ellipse(cx, cy):
         "minor_std": minor_std,
     }
 
-def estimate_model_from_image_sequence(cx, cy, ts):
+def estimate_model_from_image_sequence(cx, cy, t):
     assert len(cx) == len(cy)
-    assert len(cx) == len(ts)
+    assert len(cx) == len(t)
 
     model = estimate_ellipse(cx=cx, cy=cy)
     model["num_photons_pe"] = float(len(cx))
 
     c_main_axis = project_onto_main_axis(cx=cx, cy=cy, ellipse_model=model)
     model["time_slope_ns_per_deg"] = estimate_time_slope(
-        c_main_axis=c_main_axis, ts=ts
+        c_main_axis=c_main_axis, t=t
     )
 
     if model["time_slope_ns_per_deg"] < 0.0:
@@ -264,7 +264,7 @@ def estimate_model_from_light_field(split_light_field, model_config):
         if num_photons >= model_config["min_num_photons"]:
             models.append(
                 estimate_model_from_image_sequence(
-                    cx=img[:, 0], cy=img[:, 1], ts=img[:, 2]
+                    cx=img[:, 0], cy=img[:, 1], t=img[:, 2]
                 )
             )
     return models
@@ -555,11 +555,14 @@ class SplitLightField:
         ph_cy = lfg.cy_mean[lr["photons"]["channels"]]
         self.median_cx = np.median(ph_cx)
         self.median_cy = np.median(ph_cy)
-        ph_ts = lr["photons"]["arrival_time_slices"]
+        ph_t = (
+            lr["sensor"]["time_slice_duration"] *
+            lr["photons"]["arrival_time_slices"]
+        )
 
         for ph in range(self.number_photons):
             pax = ph_paxel[ph]
-            self.image_sequences[pax].append([ph_cx[ph], ph_cy[ph], ph_ts[ph]])
+            self.image_sequences[pax].append([ph_cx[ph], ph_cy[ph], ph_t[ph]])
 
         for pax in range(self.number_paxel):
             if len(self.image_sequences[pax]) > 0:
