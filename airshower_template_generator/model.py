@@ -538,6 +538,30 @@ class LightField:
 
 
 class SplitLightField:
+    """
+    The light-field is split into image-sequences, each taken at a different
+    principal-aperture-cell (paxel).
+    In natural units, not in detector specific units.
+
+    Fields
+    ======
+
+    image_sequences         A list of image-sequences.
+                            Each image-sequence is an array of photons.
+                            Each photon has three coordinates cx, cy and t.
+
+    number_photons          Number of photons in the entire light-field.
+
+    number_paxel            Number of principal-aperture-cells (paxel), thus
+                            number of image-sequences.
+
+    paxel_pos_x /
+    paxel_pos_y             The positions of the paxels on the aperture-plane.
+
+    median_cx /
+    median_cy               The median direction of all photons in the
+                            light-field.
+    """
     def __init__(self, loph_record, light_field_geometry):
         lr = loph_record
         lfg = light_field_geometry
