@@ -7,7 +7,6 @@ from . import quality
 from . import parallel_counter
 from . import input_output
 from . import projection
-from . import discrete_kernel
 
 import numpy as np
 import corsika_primary_wrapper as cpw
