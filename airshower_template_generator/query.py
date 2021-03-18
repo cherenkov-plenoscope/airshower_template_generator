@@ -65,26 +65,26 @@ def _query_array(
     return avg_img / np.sum(weights)
 
 
-def benchmark(lut, num_queries=1000):
+def benchmark(lut, prng, num_queries=1000):
     _b = lut["binning"]
     _eb = lut["explicit_binning"]
     request = 0
     while request < num_queries:
-        energy_GeV = np.random.uniform(
+        energy_GeV = prng.uniform(
             low=_b["energy_GeV"]["start_support"],
             high=_b["energy_GeV"]["stop_support"],
             size=1,
         )[0]
 
-        altitude_m = np.random.uniform(
+        altitude_m = prng.uniform(
             low=_eb["altitude_m"]["supports"][0],
             high=_eb["altitude_m"]["supports"][-1],
             size=1,
         )[0]
 
-        azimuth_deg = np.random.uniform(low=0.0, high=360.0, size=1)[0]
+        azimuth_deg = prng.uniform(low=0.0, high=360.0, size=1)[0]
 
-        radius_m = np.random.uniform(
+        radius_m = prng.uniform(
             low=_b["radius_m"]["start_support"],
             high=_b["radius_m"]["stop_support"],
             size=1,
