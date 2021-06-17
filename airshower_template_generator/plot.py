@@ -64,7 +64,29 @@ def add_slider_axes(ax, start, stop, value, label, log=False):
 
 
 def write_view(path, energy_GeV, altitude_m, azimuth_deg, radius_m, lut):
+    """
+    Writes an overview-figure of a slice in the look-up-table.
+    Shows:
+    -   Direction-histogram (c-parallel vs. c-perpendicular)
+    -   Direction-time-histogram (c-parallel vs. rel. arrival-time)
+    -   The position of the query in the look-up-table's space, and the
+            population of the look-up-table.
 
+    Parameters
+    ----------
+    path : str, path
+            Output path to write figure to.
+    energy_GeV : float
+            The energy to look up.
+    altitude_m : float
+            The altitude of the airshower's maximum to look up.
+    azimuth_deg : float
+            The azimuth-angle of the shower's core w.r.t. the aperture-plane.
+    radius_m : float
+            The radial distance of the shower's core w.r.t. the aperture-plane.
+    lut : dict
+            The look-up-table.
+    """
     image_integrated = query.query_par_per(
         lut=lut,
         energy_GeV=energy_GeV,
