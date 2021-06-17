@@ -46,13 +46,6 @@ def axis_size(x_start, x_stop, y_start, y_stop, figsize, dpi):
     return out
 
 
-def add_circle(ax, x, y, r, linestyle):
-    phis = np.linspace(0, 2 * np.pi, 512)
-    xs = r * np.cos(phis) + x
-    ys = r * np.sin(phis) + y
-    ax.plot(xs, ys, linestyle)
-
-
 def rm_splines(ax):
     ax.spines["right"].set_visible(False)
     ax.spines["top"].set_visible(False)
@@ -164,18 +157,26 @@ def write_view(path, energy_GeV, altitude_m, azimuth_deg, radius_m, lut):
     ax_aperture = fig.add_axes(
         axis_size(75, 75 + 330, YS, 75 + 330, figsize, dpi)
     )
-    add_circle(ax=ax_aperture, x=0, y=0, r=max_core_radius, linestyle="k:")
+    splt.ax_add_circle(
+        ax=ax_aperture,
+        x=0,
+        y=0,
+        r=max_core_radius,
+        linestyle=":",
+        color="k"
+    )
     rm_splines(ax=ax_aperture)
     ax_aperture.set_xlim([-max_core_radius, max_core_radius])
     ax_aperture.set_ylim([-max_core_radius, max_core_radius])
     ax_aperture.set_yticklabels([])
 
-    add_circle(
+    splt.ax_add_circle(
         ax=ax_aperture,
         x=aperture_x,
         y=aperture_y,
         r=aperture_radius_m,
-        linestyle="k-",
+        linestyle="-",
+        color="k"
     )
     ax_aperture.grid(color="k", linestyle="-", linewidth=0.66, alpha=0.1)
     ax_aperture.set_xlabel("x / m")
