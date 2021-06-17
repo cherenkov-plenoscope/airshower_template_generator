@@ -66,6 +66,10 @@ def _query_array(
 
 
 def benchmark(lut, prng, num_queries=1000):
+    """
+    benchmark the query itself by making 'num_queries' random queries in
+    the lut.
+    """
     _b = lut["binning"]
     _eb = lut["explicit_binning"]
     request = 0

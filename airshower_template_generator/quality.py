@@ -2,6 +2,18 @@ import numpy as np
 
 
 def estimate_leakage(image, num_pixel_outer_rim):
+    """
+    Returns the inner/outer ratio of photons in the image. The inside and
+    outside is defined by the 'num_pixel_outer_rim'.
+
+    Parameter
+    ---------
+    image : array 2d, floats
+            The image with the photon-intensity
+    num_pixel_outer_rim : int
+            The number of pixels starting from the edges to be considered
+            outside.
+    """
     assert num_pixel_outer_rim >= 0
 
     num_cols = image.shape[0]

@@ -270,8 +270,8 @@ def write_view(path, energy_GeV, altitude_m, azimuth_deg, radius_m, lut):
         stop=1e9,
         value=image_integrated_size,
         log=True,
-        label="photons / m$^{{-2}}$ sr$^{{-1}}$\n{:.0f}k".format(
-            image_integrated_size / 1e3
+        label="photons / m$^{{-2}}$ sr$^{{-1}}$\n{:.1e}".format(
+            image_integrated_size
         ),
     )
 
