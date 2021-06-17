@@ -1,13 +1,9 @@
 from . import query
 from . import bins
-
 import numpy as np
+import sebastians_matplotlib_addons as splt
 import matplotlib.pyplot as plt
 import os
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 
 def write_image(
@@ -16,6 +12,7 @@ def write_image(
     image,
     x_key="image_parallel_deg",
     y_key="image_perpendicular_deg",
+    figure_style=splt.FIGURE_16_9
 ):
     _b = binning
     explbins = bins.make_explicit_binning(_b)
@@ -23,8 +20,8 @@ def write_image(
     h_deg = _b[y_key]["num_bins"]
     w = 0.8
     h = h_deg / w_deg * w * 16 / 9
-    fig = plt.figure(figsize=(16, 9), dpi=120)
-    ax = fig.add_axes([0.1, 0.1, w, h])
+    fig = splt.figure(figure_style)
+    ax = splt.add_axes(fig=fig, span=[0.1, 0.1, w, h])
     ax.set_title("{:.3e} ph".format(np.sum(image)))
     ax.pcolor(
         explbins[x_key]["edges"],
