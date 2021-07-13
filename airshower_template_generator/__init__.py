@@ -10,7 +10,7 @@ from . import production
 
 import os
 import glob
-from plenoirf import json_numpy
+import json_numpy
 
 
 def init(

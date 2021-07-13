@@ -24,6 +24,7 @@ setuptools.setup(
         "Topic :: Scientific/Engineering :: Astronomy",
     ],
     install_requires=[
+        "json_numpy_relleums",
         "corsika_primary_wrapper",
         "sebastians_matplotlib_addons",
         "plenoirf",

@@ -8,7 +8,7 @@ from scipy import spatial
 import json
 import tarfile
 import gzip
-from plenoirf import json_numpy
+import json_numpy
 import glob
 from queue_map_reduce import network_file_system as nfs
 
