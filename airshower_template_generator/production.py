@@ -226,7 +226,6 @@ def run_job(job):
 
         corsika_run = cpw.CorsikaPrimary(
             corsika_path=job["run_config"]["corsika_primary_path"],
-            steering_dict=steering_dict,
             steering_card=explicit_steering["steering_card"],
             primary_bytes=explicit_steering["primary_bytes"],
             stdout_path=corsika_o_path,
