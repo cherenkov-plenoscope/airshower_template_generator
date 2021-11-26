@@ -215,6 +215,10 @@ def run_job(job):
         num_airshower=num_airshowers_to_be_thrown,
         random_seed=job["energy_job"],
     )
+    explicit_steerings = cpw.steering_dict_to_explicit_steerings(
+        steering_dict=steering_dict
+    )
+    explicit_steering = explicit_steerings[steering_dict["run"]["run_id"]]
 
     with tempfile.TemporaryDirectory(prefix="atg_") as tmp_dir:
         corsika_o_path = os.path.join(tmp_dir, "corsika.o")
@@ -223,6 +227,8 @@ def run_job(job):
         corsika_run = cpw.CorsikaPrimary(
             corsika_path=job["run_config"]["corsika_primary_path"],
             steering_dict=steering_dict,
+            steering_card=explicit_steering["steering_card"],
+            primary_bytes=explicit_steering["primary_bytes"],
             stdout_path=corsika_o_path,
             stderr_path=corsika_e_path,
         )
