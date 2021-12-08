@@ -1,5 +1,5 @@
 import numpy as np
-import corsika_primary_wrapper as cpw
+import corsika_primary as cpw
 import tempfile
 import os
 import io
@@ -16,10 +16,6 @@ from . import bins
 from . import quality
 from . import input_output
 
-
-RANDOM_SEED_STRUCTRUE = cpw.random_seed.CorsikaRandomSeed(
-    NUM_DIGITS_RUN_ID=3, NUM_DIGITS_AIRSHOWER_ID=6,
-)
 
 
 def make_jobs(work_dir):
@@ -97,33 +93,37 @@ def time_slice_duration_s(binning):
 def make_corsika_steering_card(
     site, particle, energy, num_airshower, random_seed
 ):
-    run_id = random_seed + 1
-    steering = {
-        "run": {
-            "run_id": run_id,
-            "event_id_of_first_event": 1,
-            "observation_level_asl_m": site["observation_level_asl_m"],
-            "earth_magnetic_field_x_muT": site["earth_magnetic_field_x_muT"],
-            "earth_magnetic_field_z_muT": site["earth_magnetic_field_z_muT"],
-            "atmosphere_id": site["atmosphere_id"],
-        },
-        "primaries": [],
-    }
+    i8 = np.int64
+    f8 = np.float64
 
+    run_id = random_seed + 1
+    run = {
+        "run_id": i8(run_id),
+        "event_id_of_first_event": i8(1),
+        "observation_level_asl_m": f8(site["observation_level_asl_m"]),
+        "earth_magnetic_field_x_muT": f8(site["earth_magnetic_field_x_muT"]),
+        "earth_magnetic_field_z_muT": f8(site["earth_magnetic_field_z_muT"]),
+        "atmosphere_id": i8(site["atmosphere_id"]),
+        "energy_range": {
+            "start_GeV": f8(energy*0.99),
+            "stop_GeV": f8(energy*1.01),
+        },
+        "random_seed": cpw.simple_seed(run_id),
+    }
+    primaries = []
     for i in range(num_airshower):
         primary = {
-            "particle_id": particle["particle_id"],
-            "energy_GeV": energy,
-            "zenith_rad": 0.0,
-            "azimuth_rad": 0.0,
-            "depth_g_per_cm2": 0.0,
-            "random_seed": cpw.simple_seed(
-                RANDOM_SEED_STRUCTRUE.random_seed_based_on(
-                    run_id=run_id, airshower_id=i
-                )
-            ),
+            "particle_id": f8(particle["particle_id"]),
+            "energy_GeV": f8(energy),
+            "zenith_rad": f8(0.0),
+            "azimuth_rad": f8(0.0),
+            "depth_g_per_cm2": f8(0.0),
         }
-        steering["primaries"].append(primary)
+        primaries.append(primary)
+    steering = {
+        "run": run,
+        "primaries": primaries,
+    }
     return steering
 
 
@@ -215,10 +215,6 @@ def run_job(job):
         num_airshower=num_airshowers_to_be_thrown,
         random_seed=job["energy_job"],
     )
-    explicit_steerings = cpw.steering_dict_to_explicit_steerings(
-        steering_dict=steering_dict
-    )
-    explicit_steering = explicit_steerings[steering_dict["run"]["run_id"]]
 
     with tempfile.TemporaryDirectory(prefix="atg_") as tmp_dir:
         corsika_o_path = os.path.join(tmp_dir, "corsika.o")
@@ -226,8 +222,7 @@ def run_job(job):
 
         corsika_run = cpw.CorsikaPrimary(
             corsika_path=job["run_config"]["corsika_primary_path"],
-            steering_card=explicit_steering["steering_card"],
-            primary_bytes=explicit_steering["primary_bytes"],
+            steering_dict=steering_dict,
             stdout_path=corsika_o_path,
             stderr_path=corsika_e_path,
         )

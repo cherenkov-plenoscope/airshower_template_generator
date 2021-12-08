@@ -25,7 +25,7 @@ setuptools.setup(
     ],
     install_requires=[
         "json_numpy_relleums",
-        "corsika_primary_wrapper",
+        "corsika_primary",
         "sebastians_matplotlib_addons",
         "plenoirf",
         "queue_map_reduce",
