@@ -170,9 +170,9 @@ def write_map_result(
         _tar_append(
             tar_obj=tar_obj,
             name="job.json",
-            payload_bytes=json_numpy.dumps(
-                job, indent=4,
-            ).encode(encoding="ascii"),
+            payload_bytes=json_numpy.dumps(job, indent=4,).encode(
+                encoding="ascii"
+            ),
         )
         _tar_append(
             tar_obj=tar_obj,

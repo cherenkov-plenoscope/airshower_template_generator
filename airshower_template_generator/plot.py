@@ -12,7 +12,7 @@ def write_image(
     image,
     x_key="image_parallel_deg",
     y_key="image_perpendicular_deg",
-    figure_style=splt.FIGURE_16_9
+    figure_style=splt.FIGURE_16_9,
 ):
     _b = binning
     explbins = bins.make_explicit_binning(_b)
@@ -180,12 +180,7 @@ def write_view(path, energy_GeV, altitude_m, azimuth_deg, radius_m, lut):
         axis_size(75, 75 + 330, YS, 75 + 330, figsize, dpi)
     )
     splt.ax_add_circle(
-        ax=ax_aperture,
-        x=0,
-        y=0,
-        r=max_core_radius,
-        linestyle=":",
-        color="k"
+        ax=ax_aperture, x=0, y=0, r=max_core_radius, linestyle=":", color="k"
     )
     rm_splines(ax=ax_aperture)
     ax_aperture.set_xlim([-max_core_radius, max_core_radius])
@@ -198,7 +193,7 @@ def write_view(path, energy_GeV, altitude_m, azimuth_deg, radius_m, lut):
         y=aperture_y,
         r=aperture_radius_m,
         linestyle="-",
-        color="k"
+        color="k",
     )
     ax_aperture.grid(color="k", linestyle="-", linewidth=0.66, alpha=0.1)
     ax_aperture.set_xlabel("x / m")

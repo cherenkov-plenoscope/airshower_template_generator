@@ -3,11 +3,12 @@ import numpy as np
 
 SQRT_TWO_PI = np.sqrt(2.0 * np.pi)
 
+
 def gaussian_bell_1d(c_deg, peak_deg, width_deg):
-    return (
-        gaussian_bell_1d_max_one(c_deg, peak_deg, width_deg) /
-        (width_deg * SQRT_TWO_PI)
+    return gaussian_bell_1d_max_one(c_deg, peak_deg, width_deg) / (
+        width_deg * SQRT_TWO_PI
     )
+
 
 def gaussian_bell_1d_max_one(c_deg, peak_deg, width_deg):
     return np.exp(-0.5 * (c_deg - peak_deg) ** 2 / width_deg ** 2)

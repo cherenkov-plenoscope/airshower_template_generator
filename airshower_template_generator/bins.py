@@ -163,7 +163,7 @@ def find_azimuth_bins(explicit_binning, azimuth_deg):
 def find_altitude_bins(explicit_binning, altitude_m):
     alt = find_bins_in_centers(
         bin_centers=explicit_binning["altitude_m"]["supports"],
-        value=altitude_m
+        value=altitude_m,
     )
     if alt["overflow"] or alt["underflow"]:
         raise IndexError("altitude {:.3e}m out of range".format(altitude_m))

@@ -18,7 +18,6 @@ from . import input_output
 from . import projection
 
 
-
 def make_jobs(work_dir):
     """
     Returns a list of jobs to be run by 'run_job(job)'.
@@ -106,8 +105,8 @@ def make_corsika_steering_card(
         "earth_magnetic_field_z_muT": f8(site["earth_magnetic_field_z_muT"]),
         "atmosphere_id": i8(site["atmosphere_id"]),
         "energy_range": {
-            "start_GeV": f8(energy*0.99),
-            "stop_GeV": f8(energy*1.01),
+            "start_GeV": f8(energy * 0.99),
+            "stop_GeV": f8(energy * 1.01),
         },
         "random_seed": cpw.random.seed.make_simple_seed(run_id),
     }
@@ -292,7 +291,9 @@ def run_job(job):
                         if num_cherenkov_photons_in_surrounding > 0:
 
                             med_time_ns = np.median(
-                                cherenkov_bunches[surround_meets, cpw.I.BUNCH.TIME]
+                                cherenkov_bunches[
+                                    surround_meets, cpw.I.BUNCH.TIME
+                                ]
                             )
 
                             view = cherenkov_bunches[meets, :]
