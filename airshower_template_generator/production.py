@@ -15,6 +15,7 @@ from queue_map_reduce import network_file_system as nfs
 from . import bins
 from . import quality
 from . import input_output
+from . import projection
 
 
 
@@ -108,7 +109,7 @@ def make_corsika_steering_card(
             "start_GeV": f8(energy*0.99),
             "stop_GeV": f8(energy*1.01),
         },
-        "random_seed": cpw.simple_seed(run_id),
+        "random_seed": cpw.random.seed.make_simple_seed(run_id),
     }
     primaries = []
     for i in range(num_airshower):
@@ -236,7 +237,7 @@ def run_job(job):
                 continue
 
             airshower_maximum_altitude_asl_m = 1e-2 * np.median(
-                cherenkov_bunches[:, cpw.IZEM]
+                cherenkov_bunches[:, cpw.I.BUNCH.ZEM]
             )
 
             underflow, altitude_bin, overflow = bins.find_bin_in_edges(
@@ -262,8 +263,8 @@ def run_job(job):
 
             xy_tree = scipy.spatial.KDTree(
                 data=np.c_[
-                    1e-2 * cherenkov_bunches[:, cpw.IX],
-                    1e-2 * cherenkov_bunches[:, cpw.IY],
+                    1e-2 * cherenkov_bunches[:, cpw.I.BUNCH.X],
+                    1e-2 * cherenkov_bunches[:, cpw.I.BUNCH.Y],
                 ]
             )
 
@@ -291,7 +292,7 @@ def run_job(job):
                         if num_cherenkov_photons_in_surrounding > 0:
 
                             med_time_ns = np.median(
-                                cherenkov_bunches[surround_meets, cpw.ITIME]
+                                cherenkov_bunches[surround_meets, cpw.I.BUNCH.TIME]
                             )
 
                             view = cherenkov_bunches[meets, :]
@@ -300,8 +301,8 @@ def run_job(job):
                                 cer_cpara,
                                 cer_cperp,
                             ) = projection.project_light_field_onto_source_image(
-                                cer_cx_rad=view[:, cpw.ICX],
-                                cer_cy_rad=view[:, cpw.ICY],
+                                cer_cx_rad=view[:, cpw.I.BUNCH.CX],
+                                cer_cy_rad=view[:, cpw.I.BUNCH.CY],
                                 cer_x_m=xy_supports[azi][rad][probe][0],
                                 cer_y_m=xy_supports[azi][rad][probe][1],
                                 primary_cx_rad=0.0,
@@ -309,7 +310,7 @@ def run_job(job):
                                 primary_core_x_m=0.0,
                                 primary_core_y_m=0.0,
                             )
-                            cer_bunch_size = view[:, cpw.IBSIZE]
+                            cer_bunch_size = view[:, cpw.I.BUNCH.BSIZE]
 
                             image = np.histogram2d(
                                 x=cer_cpara,
@@ -322,7 +323,7 @@ def run_job(job):
                             )[0]
 
                             cer_relative_time_s = (
-                                view[:, cpw.ITIME] - med_time_ns
+                                view[:, cpw.I.BUNCH.TIME] - med_time_ns
                             ) * 1e-9
 
                             time_image = np.histogram2d(
