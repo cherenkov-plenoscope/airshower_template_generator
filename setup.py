@@ -6,7 +6,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="airshower_template_generator",
-    version="0.1.0",
+    version="0.1.1",
     description="Generate Cherenkov-light-templates of cosmic-ray airshowers.",
     long_description=long_description,
     long_description_content_type="text/markdown",
