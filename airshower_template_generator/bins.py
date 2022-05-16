@@ -1,46 +1,5 @@
 import numpy as np
-
-
-def find_bin_in_edges(bin_edges, value):
-    upper_bin_edge = int(np.digitize([value], bin_edges)[0])
-    if upper_bin_edge == 0:
-        return True, 0, False
-    if upper_bin_edge == bin_edges.shape[0]:
-        return False, upper_bin_edge - 1, True
-    return False, upper_bin_edge - 1, False
-
-
-def find_bins_in_centers(bin_centers, value):
-    underflow, lower_bin, overflow = find_bin_in_edges(
-        bin_edges=bin_centers, value=value
-    )
-
-    upper_bin = lower_bin + 1
-    if underflow:
-        lower_weight = 0.0
-    elif overflow:
-        lower_weight = 1.0
-    else:
-        dist_to_lower = value - bin_centers[lower_bin]
-        bin_range = bin_centers[upper_bin] - bin_centers[lower_bin]
-        lower_weight = 1 - dist_to_lower / bin_range
-
-    return {
-        "underflow": underflow,
-        "overflow": overflow,
-        "lower_bin": lower_bin,
-        "upper_bin": lower_bin + 1,
-        "lower_weight": lower_weight,
-        "upper_weight": 1.0 - lower_weight,
-    }
-
-
-def bin_centers(bin_edges, weight_lower_edge=0.5):
-    assert weight_lower_edge >= 0.0 and weight_lower_edge <= 1.0
-    weight_upper_edge = 1.0 - weight_lower_edge
-    return (
-        weight_lower_edge * bin_edges[:-1] + weight_upper_edge * bin_edges[1:]
-    )
+import binning_utils
 
 
 def make_explicit_binning(binning):
@@ -60,7 +19,7 @@ def make_explicit_binning(binning):
     out["azimuth_deg"]["edges"] = np.linspace(
         0.0, 360.0, _b["azimuth_deg"]["num_bins"] + 1
     )
-    out["azimuth_deg"]["supports"] = bin_centers(
+    out["azimuth_deg"]["supports"] = binning_utils.centers(
         bin_edges=out["azimuth_deg"]["edges"]
     )
 
@@ -83,7 +42,7 @@ def make_explicit_binning(binning):
             _b[key]["stop_edge"],
             _b[key]["num_bins"] + 1,
         )
-        out[key]["supports"] = bin_centers(bin_edges=out[key]["edges"])
+        out[key]["supports"] = binning_utils.centers(bin_edges=out[key]["edges"])
 
     return out
 
@@ -138,7 +97,7 @@ def full_coverage_xy_supports_on_observationlevel(binning):
 
 
 def find_energy_bins(explicit_binning, energy_GeV):
-    ene = find_bins_in_centers(
+    ene = binning_utils.find_bins_in_centers(
         bin_centers=explicit_binning["energy_GeV"]["log10_supports"],
         value=np.log10(energy_GeV),
     )
@@ -148,7 +107,7 @@ def find_energy_bins(explicit_binning, energy_GeV):
 
 
 def find_azimuth_bins(explicit_binning, azimuth_deg):
-    azi = find_bins_in_centers(
+    azi = binning_utils.find_bins_in_centers(
         bin_centers=explicit_binning["azimuth_deg"]["edges"],
         value=modulo_azimuth_range(azimuth_deg=azimuth_deg),
     )
@@ -161,7 +120,7 @@ def find_azimuth_bins(explicit_binning, azimuth_deg):
 
 
 def find_altitude_bins(explicit_binning, altitude_m):
-    alt = find_bins_in_centers(
+    alt = binning_utils.find_bins_in_centers(
         bin_centers=explicit_binning["altitude_m"]["supports"],
         value=altitude_m,
     )
@@ -171,7 +130,7 @@ def find_altitude_bins(explicit_binning, altitude_m):
 
 
 def find_radius_bins(explicit_binning, radius_m):
-    rad = find_bins_in_centers(
+    rad = binning_utils.find_bins_in_centers(
         bin_centers=explicit_binning["radius_m"]["supports"], value=radius_m
     )
     if rad["overflow"] or rad["underflow"]:

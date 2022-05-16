@@ -9,6 +9,7 @@ import json
 import tarfile
 import gzip
 import json_numpy
+import binning_utils
 import glob
 from queue_map_reduce import network_file_system as nfs
 
@@ -239,7 +240,7 @@ def run_job(job):
                 cherenkov_bunches[:, cpw.I.BUNCH.ZEM]
             )
 
-            underflow, altitude_bin, overflow = bins.find_bin_in_edges(
+            underflow, altitude_bin, overflow = binning_utils.find_bin_in_edges(
                 value=airshower_maximum_altitude_asl_m,
                 bin_edges=altitude_bin_edges_m,
             )

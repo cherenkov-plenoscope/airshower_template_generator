@@ -25,6 +25,7 @@ setuptools.setup(
     ],
     install_requires=[
         "json_numpy_relleums",
+        "binning_utils_relleums",
         "corsika_primary",
         "sebastians_matplotlib_addons",
         "plenoirf",
