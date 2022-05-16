@@ -240,7 +240,11 @@ def run_job(job):
                 cherenkov_bunches[:, cpw.I.BUNCH.ZEM]
             )
 
-            underflow, altitude_bin, overflow = binning_utils.find_bin_in_edges(
+            (
+                underflow,
+                altitude_bin,
+                overflow,
+            ) = binning_utils.find_bin_in_edges(
                 value=airshower_maximum_altitude_asl_m,
                 bin_edges=altitude_bin_edges_m,
             )

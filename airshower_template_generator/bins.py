@@ -42,7 +42,9 @@ def make_explicit_binning(binning):
             _b[key]["stop_edge"],
             _b[key]["num_bins"] + 1,
         )
-        out[key]["supports"] = binning_utils.centers(bin_edges=out[key]["edges"])
+        out[key]["supports"] = binning_utils.centers(
+            bin_edges=out[key]["edges"]
+        )
 
     return out
 
