@@ -11,7 +11,7 @@ import gzip
 import json_numpy
 import binning_utils
 import glob
-from queue_map_reduce import network_file_system as nfs
+import network_file_system as nfs
 
 from . import bins
 from . import quality

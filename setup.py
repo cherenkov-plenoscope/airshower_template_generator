@@ -24,12 +24,12 @@ setuptools.setup(
         "Topic :: Scientific/Engineering :: Astronomy",
     ],
     install_requires=[
-        "json_numpy_relleums",
-        "binning_utils_relleums",
+        "json_numpy_sebastian-achim-mueller",
+        "binning_utils_sebastian-achim-mueller",
         "corsika_primary",
         "sebastians_matplotlib_addons",
         "plenoirf",
-        "queue_map_reduce",
+        "network_file_system_sebastian-achim-mueller",
         "scipy",
     ],
 )

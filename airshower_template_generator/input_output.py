@@ -4,7 +4,7 @@ import io
 import tempfile
 import os
 import numpy as np
-from queue_map_reduce import network_file_system as nfs
+import network_file_system as nfs
 import json_numpy
 from . import bins
 
