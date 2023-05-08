@@ -229,7 +229,10 @@ def run_job(job):
         )
 
         for airshower in corsika_run:
-            _, cherenkov_bunches = airshower
+            _, cherenkov_reader, particle_reader = airshower
+
+            cherenkov_bunches = np.vstack([b for b in cherenkov_reader])
+            _  = [p for p in particle_reader]
 
             num_bunches = cherenkov_bunches.shape[0]
 
