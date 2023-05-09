@@ -220,134 +220,134 @@ def run_job(job):
     with tempfile.TemporaryDirectory(prefix="atg_") as tmp_dir:
         corsika_o_path = os.path.join(tmp_dir, "corsika.o")
         corsika_e_path = os.path.join(tmp_dir, "corsika.e")
+        particle_path = os.path.join(tmp_dir, "par.dat")
 
-        corsika_run = cpw.CorsikaPrimary(
+        with cpw.CorsikaPrimary(
             corsika_path=job["run_config"]["corsika_primary_path"],
             steering_dict=steering_dict,
             stdout_path=corsika_o_path,
             stderr_path=corsika_e_path,
-        )
+            particle_output_path=particle_path,
+        ) as corsika_run:
+            for airshower in corsika_run:
+                _evth, cherenkov_reader = airshower
 
-        for airshower in corsika_run:
-            _, cherenkov_reader, particle_reader = airshower
+                cherenkov_bunches = np.vstack([b for b in cherenkov_reader])
 
-            cherenkov_bunches = np.vstack([b for b in cherenkov_reader])
-            _  = [p for p in particle_reader]
+                num_bunches = cherenkov_bunches.shape[0]
 
-            num_bunches = cherenkov_bunches.shape[0]
+                if num_bunches == 0:
+                    continue
 
-            if num_bunches == 0:
-                continue
+                airshower_maximum_altitude_asl_m = 1e-2 * np.median(
+                    cherenkov_bunches[:, cpw.I.BUNCH.ZEM]
+                )
 
-            airshower_maximum_altitude_asl_m = 1e-2 * np.median(
-                cherenkov_bunches[:, cpw.I.BUNCH.ZEM]
-            )
+                (
+                    underflow,
+                    altitude_bin,
+                    overflow,
+                ) = binning_utils.find_bin_in_edges(
+                    value=airshower_maximum_altitude_asl_m,
+                    bin_edges=altitude_bin_edges_m,
+                )
 
-            (
-                underflow,
-                altitude_bin,
-                overflow,
-            ) = binning_utils.find_bin_in_edges(
-                value=airshower_maximum_altitude_asl_m,
-                bin_edges=altitude_bin_edges_m,
-            )
+                if underflow:
+                    num_underflow += 1
+                    continue
 
-            if underflow:
-                num_underflow += 1
-                continue
+                if overflow:
+                    num_overflow += 1
+                    continue
 
-            if overflow:
-                num_overflow += 1
-                continue
+                if (
+                    num_airshowers_in_altitude_bins[altitude_bin]
+                    >= max_num_airshower_to_collect_in_altitude_bin
+                ):
+                    continue
 
-            if (
-                num_airshowers_in_altitude_bins[altitude_bin]
-                >= max_num_airshower_to_collect_in_altitude_bin
-            ):
-                continue
+                num_airshowers_in_altitude_bins[altitude_bin] += 1
 
-            num_airshowers_in_altitude_bins[altitude_bin] += 1
+                xy_tree = scipy.spatial.KDTree(
+                    data=np.c_[
+                        1e-2 * cherenkov_bunches[:, cpw.I.BUNCH.X],
+                        1e-2 * cherenkov_bunches[:, cpw.I.BUNCH.Y],
+                    ]
+                )
 
-            xy_tree = scipy.spatial.KDTree(
-                data=np.c_[
-                    1e-2 * cherenkov_bunches[:, cpw.I.BUNCH.X],
-                    1e-2 * cherenkov_bunches[:, cpw.I.BUNCH.Y],
-                ]
-            )
+                for azi in range(job["binning"]["azimuth_deg"]["num_bins"]):
+                    for rad in range(job["binning"]["radius_m"]["num_bins"]):
 
-            for azi in range(job["binning"]["azimuth_deg"]["num_bins"]):
-                for rad in range(job["binning"]["radius_m"]["num_bins"]):
+                        num_probing_apertures = len(xy_supports[azi][rad])
+                        probing_aperture_weight = 1.0 / num_probing_apertures
+                        for probe in range(num_probing_apertures):
 
-                    num_probing_apertures = len(xy_supports[azi][rad])
-                    probing_aperture_weight = 1.0 / num_probing_apertures
-                    for probe in range(num_probing_apertures):
-
-                        meets = xy_tree.query_ball_point(
-                            x=xy_supports[azi][rad][probe],
-                            r=job["binning"]["aperture_radius_m"],
-                        )
-
-                        surround_meets = xy_tree.query_ball_point(
-                            x=xy_supports[azi][rad][probe],
-                            r=job["binning"]["aperture_radius_for_timing_m"],
-                        )
-
-                        num_cherenkov_photons_in_surrounding = len(
-                            surround_meets
-                        )
-
-                        if num_cherenkov_photons_in_surrounding > 0:
-
-                            med_time_ns = np.median(
-                                cherenkov_bunches[
-                                    surround_meets, cpw.I.BUNCH.TIME
-                                ]
+                            meets = xy_tree.query_ball_point(
+                                x=xy_supports[azi][rad][probe],
+                                r=job["binning"]["aperture_radius_m"],
                             )
 
-                            view = cherenkov_bunches[meets, :]
-
-                            (
-                                cer_cpara,
-                                cer_cperp,
-                            ) = projection.project_light_field_onto_source_image(
-                                cer_cx_rad=view[:, cpw.I.BUNCH.CX],
-                                cer_cy_rad=view[:, cpw.I.BUNCH.CY],
-                                cer_x_m=xy_supports[azi][rad][probe][0],
-                                cer_y_m=xy_supports[azi][rad][probe][1],
-                                primary_cx_rad=0.0,
-                                primary_cy_rad=0.0,
-                                primary_core_x_m=0.0,
-                                primary_core_y_m=0.0,
+                            surround_meets = xy_tree.query_ball_point(
+                                x=xy_supports[azi][rad][probe],
+                                r=job["binning"]["aperture_radius_for_timing_m"],
                             )
-                            cer_bunch_size = view[:, cpw.I.BUNCH.BSIZE]
 
-                            image = np.histogram2d(
-                                x=cer_cpara,
-                                y=cer_cperp,
-                                weights=cer_bunch_size,
-                                bins=(
-                                    c_para_bin_edges_rad,
-                                    c_perp_bin_edges_rad,
-                                ),
-                            )[0]
-
-                            cer_relative_time_s = (
-                                view[:, cpw.I.BUNCH.TIME] - med_time_ns
-                            ) * 1e-9
-
-                            time_image = np.histogram2d(
-                                x=cer_cpara,
-                                y=cer_relative_time_s,
-                                weights=cer_bunch_size,
-                                bins=(c_para_bin_edges_rad, time_bin_edges_s),
-                            )[0]
-
-                            views[azi][rad][altitude_bin] += (
-                                probing_aperture_weight * image
+                            num_cherenkov_photons_in_surrounding = len(
+                                surround_meets
                             )
-                            tiews[azi][rad][altitude_bin] += (
-                                probing_aperture_weight * time_image
-                            )
+
+                            if num_cherenkov_photons_in_surrounding > 0:
+
+                                med_time_ns = np.median(
+                                    cherenkov_bunches[
+                                        surround_meets, cpw.I.BUNCH.TIME
+                                    ]
+                                )
+
+                                view = cherenkov_bunches[meets, :]
+
+                                (
+                                    cer_cpara,
+                                    cer_cperp,
+                                ) = projection.project_light_field_onto_source_image(
+                                    cer_cx_rad=view[:, cpw.I.BUNCH.CX],
+                                    cer_cy_rad=view[:, cpw.I.BUNCH.CY],
+                                    cer_x_m=xy_supports[azi][rad][probe][0],
+                                    cer_y_m=xy_supports[azi][rad][probe][1],
+                                    primary_cx_rad=0.0,
+                                    primary_cy_rad=0.0,
+                                    primary_core_x_m=0.0,
+                                    primary_core_y_m=0.0,
+                                )
+                                cer_bunch_size = view[:, cpw.I.BUNCH.BSIZE]
+
+                                image = np.histogram2d(
+                                    x=cer_cpara,
+                                    y=cer_cperp,
+                                    weights=cer_bunch_size,
+                                    bins=(
+                                        c_para_bin_edges_rad,
+                                        c_perp_bin_edges_rad,
+                                    ),
+                                )[0]
+
+                                cer_relative_time_s = (
+                                    view[:, cpw.I.BUNCH.TIME] - med_time_ns
+                                ) * 1e-9
+
+                                time_image = np.histogram2d(
+                                    x=cer_cpara,
+                                    y=cer_relative_time_s,
+                                    weights=cer_bunch_size,
+                                    bins=(c_para_bin_edges_rad, time_bin_edges_s),
+                                )[0]
+
+                                views[azi][rad][altitude_bin] += (
+                                    probing_aperture_weight * image
+                                )
+                                tiews[azi][rad][altitude_bin] += (
+                                    probing_aperture_weight * time_image
+                                )
 
         tmp_result_path = os.path.join(tmp_dir, "result.tar")
         with open(corsika_o_path, "rb") as fin:
