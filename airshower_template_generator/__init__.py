@@ -51,7 +51,9 @@ def init(
     if particles == None:
         particles = {}
         for pk in ["gamma"]:
-            particles[sk] = atmospheric_cherenkov_response.particles.init_particle(pk)
+            particles[
+                sk
+            ] = atmospheric_cherenkov_response.particles.init_particle(pk)
 
     os.makedirs(work_dir, exist_ok=True)
     json_numpy.write(path=os.path.join(work_dir, "sites.json"), out_dict=sites)
