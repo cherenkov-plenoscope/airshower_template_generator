@@ -289,7 +289,9 @@ def run_job(job):
 
                             surround_meets = xy_tree.query_ball_point(
                                 x=xy_supports[azi][rad][probe],
-                                r=job["binning"]["aperture_radius_for_timing_m"],
+                                r=job["binning"][
+                                    "aperture_radius_for_timing_m"
+                                ],
                             )
 
                             num_cherenkov_photons_in_surrounding = len(
@@ -319,7 +321,9 @@ def run_job(job):
                                     primary_core_x_m=0.0,
                                     primary_core_y_m=0.0,
                                 )
-                                cer_bunch_size = view[:, cpw.I.BUNCH.BUNCH_SIZE_1]
+                                cer_bunch_size = view[
+                                    :, cpw.I.BUNCH.BUNCH_SIZE_1
+                                ]
 
                                 image = np.histogram2d(
                                     x=cer_cpara,
@@ -339,7 +343,10 @@ def run_job(job):
                                     x=cer_cpara,
                                     y=cer_relative_time_s,
                                     weights=cer_bunch_size,
-                                    bins=(c_para_bin_edges_rad, time_bin_edges_s),
+                                    bins=(
+                                        c_para_bin_edges_rad,
+                                        time_bin_edges_s,
+                                    ),
                                 )[0]
 
                                 views[azi][rad][altitude_bin] += (
