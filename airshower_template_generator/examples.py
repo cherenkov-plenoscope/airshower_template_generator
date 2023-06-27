@@ -1,18 +1,5 @@
 import os
 
-SITES = {
-    "namibia": {
-        "observation_level_asl_m": 2300,
-        "earth_magnetic_field_x_muT": 12.5,
-        "earth_magnetic_field_z_muT": -25.9,
-        "atmosphere_id": 10,
-        "geomagnetic_cutoff_rigidity_GV": 12.5,
-    },
-}
-
-PARTICLES = {
-    "gamma": {"particle_id": 1,},
-}
 
 BINNING = {
     "energy_GeV": {"start_support": 1e0, "stop_support": 1e3, "num_bins": 15},

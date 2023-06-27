@@ -114,7 +114,7 @@ def make_corsika_steering_card(
     primaries = []
     for i in range(num_airshower):
         primary = {
-            "particle_id": f8(particle["particle_id"]),
+            "particle_id": f8(particle["corsika_particle_id"]),
             "energy_GeV": f8(energy),
             "zenith_rad": f8(0.0),
             "azimuth_rad": f8(0.0),

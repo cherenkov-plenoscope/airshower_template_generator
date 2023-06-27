@@ -6,7 +6,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="airshower_template_generator",
-    version="0.3.0",
+    version="0.3.1",
     description="Generate Cherenkov-light-templates of cosmic-ray airshowers.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -27,6 +27,7 @@ setuptools.setup(
         "json_numpy_sebastian-achim-mueller",
         "binning_utils_sebastian-achim-mueller",
         "corsika_primary",
+        "atmospheric_cherenkov_response_sebastian-achim-mueller",
         "sebastians_matplotlib_addons",
         "plenoirf",
         "network_file_system_sebastian-achim-mueller",
