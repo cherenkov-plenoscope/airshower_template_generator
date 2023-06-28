@@ -46,14 +46,12 @@ def init(
     if sites == None:
         sites = {}
         for sk in ["namibia"]:
-            sites[sk] = atmospheric_cherenkov_response.sites.init_site(sk)
+            sites[sk] = atmospheric_cherenkov_response.sites.init(sk)
 
     if particles == None:
         particles = {}
         for pk in ["gamma"]:
-            particles[
-                sk
-            ] = atmospheric_cherenkov_response.particles.init_particle(pk)
+            particles[sk] = atmospheric_cherenkov_response.particles.init(pk)
 
     os.makedirs(work_dir, exist_ok=True)
     json_numpy.write(path=os.path.join(work_dir, "sites.json"), out_dict=sites)
