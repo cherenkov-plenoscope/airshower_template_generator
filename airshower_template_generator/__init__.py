@@ -10,7 +10,7 @@ from . import production
 
 import os
 import glob
-import json_numpy
+import json_utils
 import atmospheric_cherenkov_response
 
 
@@ -54,14 +54,14 @@ def init(
             particles[sk] = atmospheric_cherenkov_response.particles.init(pk)
 
     os.makedirs(work_dir, exist_ok=True)
-    json_numpy.write(path=os.path.join(work_dir, "sites.json"), out_dict=sites)
-    json_numpy.write(
+    json_utils.write(path=os.path.join(work_dir, "sites.json"), out_dict=sites)
+    json_utils.write(
         path=os.path.join(work_dir, "particles.json"), out_dict=particles
     )
-    json_numpy.write(
+    json_utils.write(
         path=os.path.join(work_dir, "binning.json"), out_dict=binning
     )
-    json_numpy.write(
+    json_utils.write(
         path=os.path.join(work_dir, "run_config.json"), out_dict=run_config
     )
 

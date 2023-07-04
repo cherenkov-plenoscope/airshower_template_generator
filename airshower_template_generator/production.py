@@ -8,7 +8,7 @@ from scipy import spatial
 import json
 import tarfile
 import gzip
-import json_numpy
+import json_utils
 import binning_utils
 import glob
 import network_file_system as nfs
@@ -33,10 +33,10 @@ def make_jobs(work_dir):
 
     map_dir = os.path.join(work_dir, "map")
 
-    sites = json_numpy.read(os.path.join(work_dir, "sites.json"))
-    particles = json_numpy.read(os.path.join(work_dir, "particles.json"))
-    binning = json_numpy.read(os.path.join(work_dir, "binning.json"))
-    run_config = json_numpy.read(os.path.join(work_dir, "run_config.json"))
+    sites = json_utils.read(os.path.join(work_dir, "sites.json"))
+    particles = json_utils.read(os.path.join(work_dir, "particles.json"))
+    binning = json_utils.read(os.path.join(work_dir, "binning.json"))
+    run_config = json_utils.read(os.path.join(work_dir, "run_config.json"))
 
     explicit_binning = bins.make_explicit_binning(binning=binning)
     energy_bin_supports = explicit_binning["energy_GeV"]["supports"]
@@ -387,9 +387,9 @@ def reduce(work_dir):
     """
     map_dir = os.path.join(work_dir, "map")
     reduce_dir = os.path.join(work_dir, "reduce")
-    sites = json_numpy.read(os.path.join(work_dir, "sites.json"))
-    particles = json_numpy.read(os.path.join(work_dir, "particles.json"))
-    binning = json_numpy.read(os.path.join(work_dir, "binning.json"))
+    sites = json_utils.read(os.path.join(work_dir, "sites.json"))
+    particles = json_utils.read(os.path.join(work_dir, "particles.json"))
+    binning = json_utils.read(os.path.join(work_dir, "binning.json"))
 
     for site_key in sites:
         for particle_key in particles:

@@ -5,7 +5,7 @@ import tempfile
 import os
 import numpy as np
 import network_file_system as nfs
-import json_numpy
+import json_utils
 from . import bins
 
 
@@ -66,7 +66,7 @@ def write_raw(raw_look_up, path):
             _tar_append(
                 tar_obj=tar_obj,
                 name="binning.json",
-                payload_bytes=json_numpy.dumps(
+                payload_bytes=json_utils.dumps(
                     raw_look_up["binning"], indent=4
                 ).encode(encoding="ascii"),
             )
@@ -100,7 +100,7 @@ def read_raw(path):
     with tarfile.TarFile(path, "r") as tar_obj:
         tinfo = tar_obj.next()
         assert tinfo.name == "binning.json"
-        out["binning"] = json_numpy.loads(tar_obj.extractfile(tinfo).read())
+        out["binning"] = json_utils.loads(tar_obj.extractfile(tinfo).read())
         _b = out["binning"]
 
         out[
@@ -170,7 +170,7 @@ def write_map_result(
         _tar_append(
             tar_obj=tar_obj,
             name="job.json",
-            payload_bytes=json_numpy.dumps(job, indent=4,).encode(
+            payload_bytes=json_utils.dumps(job, indent=4,).encode(
                 encoding="ascii"
             ),
         )
@@ -215,7 +215,7 @@ def read_map_result(path):
 
         tinfo = tar_obj.next()
         assert tinfo.name == "job.json"
-        out["job"] = json_numpy.loads(tar_obj.extractfile(tinfo).read())
+        out["job"] = json_utils.loads(tar_obj.extractfile(tinfo).read())
         _b = out["job"]["binning"]
 
         out["cherenkov.histogram.azi_rad_alt_par_per"] = _tar_read_and_reshape(
