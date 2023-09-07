@@ -24,4 +24,4 @@ This uses KIT's CORSIKA to simulate the Cherenkov-emission in airshowers.
 .. |PyPiStatus| image:: https://img.shields.io/pypi/v/airshower_template_generator_cherenkov-plenoscope
    :target: https://pypi.org/project/airshower_template_generator_cherenkov-plenoscope/
 
-.. |FigImageOfShower| image:: https://github.com/cherenkov-plenoscope/airshower_template_generator/blob/main/airshower_template_generator/readme/view.jpg?raw=True
+.. |FigImageOfShower| image:: https://github.com/cherenkov-plenoscope/airshower_template_generator/blob/main/readme/view.jpg?raw=True
