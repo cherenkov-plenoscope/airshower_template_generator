@@ -31,7 +31,7 @@ setuptools.setup(
         "atmospheric_cherenkov_response_sebastian-achim-mueller",
         "sebastians_matplotlib_addons",
         "plenoirf",
-        "network_file_system_sebastian-achim-mueller",
+        "rename_after_writing",
         "scipy",
     ],
     classifiers=[

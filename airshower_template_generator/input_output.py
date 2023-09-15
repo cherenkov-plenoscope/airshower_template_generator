@@ -4,7 +4,7 @@ import io
 import tempfile
 import os
 import numpy as np
-import network_file_system as nfs
+import rename_after_writing as rnafwr
 import json_utils
 from . import bins
 
@@ -92,7 +92,7 @@ def write_raw(raw_look_up, path):
                     data=q_leakage.tobytes(order="c"),
                 ),
             )
-        nfs.move(src=tmp_path, dst=path)
+        rnafwr.move(src=tmp_path, dst=path)
 
 
 def read_raw(path):
@@ -206,7 +206,7 @@ def write_map_result(
             payload_bytes=gzip.compress(data=corsika_e),
         )
 
-    nfs.move(tmp_path, path)
+    rnafwr.move(tmp_path, path)
 
 
 def read_map_result(path):

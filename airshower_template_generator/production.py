@@ -11,7 +11,7 @@ import gzip
 import json_utils
 import binning_utils
 import glob
-import network_file_system as nfs
+import rename_after_writing as rnafwr
 
 from . import bins
 from . import quality
@@ -370,7 +370,7 @@ def run_job(job):
             corsika_e=corsika_e,
             num_airshowers_in_altitude_bins=num_airshowers_in_altitude_bins,
         )
-        nfs.move(tmp_result_path, result_path)
+        rnafwr.move(tmp_result_path, result_path)
         return 1
 
 
