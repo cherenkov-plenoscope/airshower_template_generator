@@ -2,7 +2,7 @@ import setuptools
 import os
 
 
-with open("README.rst", "r") as f:
+with open("README.rst", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 
@@ -19,7 +19,7 @@ setuptools.setup(
     description="Generate Cherenkov-light-templates of cosmic-ray airshowers.",
     long_description=long_description,
     long_description_content_type="text/x-rst",
-    url="https://github.com/cherenkov-plenoscope/airshower_template_generator.git",
+    url="https://github.com/cherenkov-plenoscope/airshower_template_generator",
     author="Sebastian Achim Mueller",
     author_email="sebastian-achim.mueller@mpi-hd.mpg.de",
     packages=[
