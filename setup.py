@@ -29,7 +29,7 @@ setuptools.setup(
     install_requires=[
         "json_utils_sebastian-achim-mueller",
         "binning_utils_sebastian-achim-mueller",
-        "corsika_primary",
+        "corsika_primary>=2.3.0",
         "atmospheric_cherenkov_response_cherenkov-plenoscope-project",
         "sebastians_matplotlib_addons",
         "rename_after_writing",

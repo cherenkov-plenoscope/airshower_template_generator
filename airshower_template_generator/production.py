@@ -306,12 +306,15 @@ def run_job(job):
 
                                 view = cherenkov_bunches[meets, :]
 
+                                MOMENTUM_TO_POINTING = -1.0
                                 (
                                     cer_cpara,
                                     cer_cperp,
                                 ) = projection.project_light_field_onto_source_image(
-                                    cer_cx_rad=view[:, cpw.I.BUNCH.CX_RAD],
-                                    cer_cy_rad=view[:, cpw.I.BUNCH.CY_RAD],
+                                    cer_cx_rad=MOMENTUM_TO_POINTING
+                                    * view[:, cpw.I.BUNCH.UX_1],
+                                    cer_cy_rad=MOMENTUM_TO_POINTING
+                                    * view[:, cpw.I.BUNCH.VY_1],
                                     cer_x_m=xy_supports[azi][rad][probe][0],
                                     cer_y_m=xy_supports[azi][rad][probe][1],
                                     primary_cx_rad=0.0,
