@@ -7,7 +7,11 @@ assert_close = np.testing.assert_almost_equal
 
 
 binning = {
-    "energy_GeV": {"start_support": 1e0, "stop_support": 1e3, "num_bins": 3,},
+    "energy_GeV": {
+        "start_support": 1e0,
+        "stop_support": 1e3,
+        "num_bins": 3,
+    },
     "azimuth_deg": {"num_bins": 3},
     "radius_m": {"start_support": 0.0, "stop_support": 3.0, "num_bins": 4},
     "altitude_m": {"start_edge": 0, "stop_edge": 30e3, "num_bins": 3},
@@ -21,7 +25,11 @@ binning = {
         "stop_edge": 0.5,
         "num_bins": 32,
     },
-    "time_s": {"start_edge": -32e-9, "stop_edge": 32e-9, "num_bins": 16,},
+    "time_s": {
+        "start_edge": -32e-9,
+        "stop_edge": 32e-9,
+        "num_bins": 16,
+    },
     "aperture_radius_m": 5.0,
 }
 

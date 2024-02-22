@@ -82,7 +82,7 @@ def area_of_aperture_m2(binning):
 def solid_angle_of_pixel_sr(binning):
     assert image_pixels_are_square(binning=binning)
     pixel_edge_rad = parallel_pixel_width_rad(binning=binning)
-    return pixel_edge_rad ** 2
+    return pixel_edge_rad**2
 
 
 def time_slice_duration_s(binning):
@@ -138,7 +138,8 @@ def image_pixels_are_square(binning):
 
 def zeros(binning, keys=[], dtype=np.float32):
     return np.zeros(
-        shape=[binning[key]["num_bins"] for key in keys], dtype=dtype,
+        shape=[binning[key]["num_bins"] for key in keys],
+        dtype=dtype,
     )
 
 
@@ -277,11 +278,9 @@ def run_job(job):
 
                 for azi in range(job["binning"]["azimuth_deg"]["num_bins"]):
                     for rad in range(job["binning"]["radius_m"]["num_bins"]):
-
                         num_probing_apertures = len(xy_supports[azi][rad])
                         probing_aperture_weight = 1.0 / num_probing_apertures
                         for probe in range(num_probing_apertures):
-
                             meets = xy_tree.query_ball_point(
                                 x=xy_supports[azi][rad][probe],
                                 r=job["binning"]["aperture_radius_m"],
@@ -299,7 +298,6 @@ def run_job(job):
                             )
 
                             if num_cherenkov_photons_in_surrounding > 0:
-
                                 med_time_ns = np.median(
                                     cherenkov_bunches[
                                         surround_meets, cpw.I.BUNCH.TIME_NS
@@ -393,7 +391,6 @@ def reduce(work_dir):
 
     for site_key in sites:
         for particle_key in particles:
-
             cer = zeros(
                 keys=[
                     "energy_GeV",
@@ -491,7 +488,12 @@ def reduce(work_dir):
 
             print("estimate leakage")
             leakage_mask = zeros(
-                keys=["energy_GeV", "azimuth_deg", "radius_m", "altitude_m",],
+                keys=[
+                    "energy_GeV",
+                    "azimuth_deg",
+                    "radius_m",
+                    "altitude_m",
+                ],
                 binning=binning,
                 dtype=np.uint8,
             )
@@ -499,7 +501,6 @@ def reduce(work_dir):
                 for azi in range(binning["azimuth_deg"]["num_bins"]):
                     for rad in range(binning["radius_m"]["num_bins"]):
                         for alt in range(binning["altitude_m"]["num_bins"]):
-
                             leak = quality.estimate_leakage(
                                 image=cer[ene, azi, rad, alt],
                                 num_pixel_outer_rim=1,

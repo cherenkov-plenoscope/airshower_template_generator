@@ -68,7 +68,6 @@ def full_coverage_xy_supports_on_observationlevel(binning):
 
     for azi, azi_center_deg in enumerate(eb["azimuth_deg"]["supports"]):
         for rad, r_m in enumerate(eb["radius_m"]["supports"]):
-
             azi_circumference_m = 2.0 * np.pi * r_m
             azi_arc_length_m = (
                 azi_circumference_m / binning["azimuth_deg"]["num_bins"]

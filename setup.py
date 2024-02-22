@@ -22,7 +22,9 @@ setuptools.setup(
     url="https://github.com/cherenkov-plenoscope/airshower_template_generator.git",
     author="Sebastian Achim Mueller",
     author_email="sebastian-achim.mueller@mpi-hd.mpg.de",
-    packages=["airshower_template_generator",],
+    packages=[
+        "airshower_template_generator",
+    ],
     package_data={"airshower_template_generator": []},
     install_requires=[
         "json_utils_sebastian-achim-mueller",

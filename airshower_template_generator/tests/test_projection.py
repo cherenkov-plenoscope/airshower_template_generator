@@ -63,15 +63,15 @@ def test_core_xy_does_not_matter_when_pointing_to_zero():
 
 def test_parallel_on_x_axis():
     """
-               cY, c_perpendicular
-               ^
-          -----|------------
-         |     |            |
-         |     |            |
-        -------0-----------------------> cX, c_parallel
-         |                  |
-         |                  |
-          ------------------
+           cY, c_perpendicular
+           ^
+      -----|------------
+     |     |            |
+     |     |            |
+    -------0-----------------------> cX, c_parallel
+     |                  |
+     |                  |
+      ------------------
     """
     for cer_cx in np.linspace(-0.1, 0.1, 10):
         for cer_cy in np.linspace(-0.1, 0.1, 10):
@@ -94,17 +94,17 @@ def test_parallel_on_x_axis():
 
 def test_parallel_on_y_axis():
     """
-               c_perpendicular
-               ^
-          -----|------------
-         |     |            |
-         |     |            |
-        -------0-----------------------> cY, c_parallel
-         |     |            |
-         |     |            |
-          -----|------------
-               V
-               cX
+           c_perpendicular
+           ^
+      -----|------------
+     |     |            |
+     |     |            |
+    -------0-----------------------> cY, c_parallel
+     |     |            |
+     |     |            |
+      -----|------------
+           V
+           cX
     """
     offset_y = 1.0
     for cer_cx in np.linspace(-0.1, 0.1, 10):

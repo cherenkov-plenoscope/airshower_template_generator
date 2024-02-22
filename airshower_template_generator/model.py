@@ -11,15 +11,17 @@ def gaussian_bell_1d(c_deg, peak_deg, width_deg):
 
 
 def gaussian_bell_1d_max_one(c_deg, peak_deg, width_deg):
-    return np.exp(-0.5 * (c_deg - peak_deg) ** 2 / width_deg ** 2)
+    return np.exp(-0.5 * (c_deg - peak_deg) ** 2 / width_deg**2)
 
 
 def lorentz_transversal(c_deg, peak_deg, width_deg):
-    return width_deg / (np.pi * (width_deg ** 2 + (c_deg - peak_deg) ** 2))
+    return width_deg / (np.pi * (width_deg**2 + (c_deg - peak_deg) ** 2))
 
 
 def lorentz_moyal_longitidinal(
-    c_deg, peak_deg, width_deg,
+    c_deg,
+    peak_deg,
+    width_deg,
 ):
     lam = (c_deg - peak_deg) / width_deg
     return (
@@ -29,9 +31,13 @@ def lorentz_moyal_longitidinal(
 
 def my_moyal_model(c_deg, moyal_peak_deg, tail_direction, width_deg):
     moyal_density = (1.0 - tail_direction) * lorentz_moyal_longitidinal(
-        c_deg=c_deg, peak_deg=moyal_peak_deg, width_deg=width_deg,
+        c_deg=c_deg,
+        peak_deg=moyal_peak_deg,
+        width_deg=width_deg,
     )
     gaussian_density = tail_direction * lorentz_moyal_longitidinal(
-        c_deg=-c_deg, peak_deg=-moyal_peak_deg, width_deg=width_deg,
+        c_deg=-c_deg,
+        peak_deg=-moyal_peak_deg,
+        width_deg=width_deg,
     )
     return moyal_density + gaussian_density

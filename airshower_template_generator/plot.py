@@ -216,28 +216,32 @@ def write_view(path, energy_GeV, altitude_m, azimuth_deg, radius_m, lut):
         0.1,
         0.3,
         "azimuth-bin [{: 3d}, {: 3d}]".format(
-            b["azimuth_deg"][0]["bin"], b["azimuth_deg"][1]["bin"],
+            b["azimuth_deg"][0]["bin"],
+            b["azimuth_deg"][1]["bin"],
         ),
     )
     ax_ap_text.text(
         0.1,
         0.2,
         "radius-bin [{: 3d}, {: 3d}]".format(
-            b["radius_m"][0]["bin"], b["radius_m"][1]["bin"],
+            b["radius_m"][0]["bin"],
+            b["radius_m"][1]["bin"],
         ),
     )
     ax_ap_text.text(
         0.1,
         0.1,
         "energy-bin [{: 3d}, {: 3d}]".format(
-            b["energy_GeV"][0]["bin"], b["energy_GeV"][1]["bin"],
+            b["energy_GeV"][0]["bin"],
+            b["energy_GeV"][1]["bin"],
         ),
     )
     ax_ap_text.text(
         0.1,
         0.0,
         "altitude-bin [{: 3d}, {: 3d}]".format(
-            b["altitude_m"][0]["bin"], b["altitude_m"][1]["bin"],
+            b["altitude_m"][0]["bin"],
+            b["altitude_m"][1]["bin"],
         ),
     )
 

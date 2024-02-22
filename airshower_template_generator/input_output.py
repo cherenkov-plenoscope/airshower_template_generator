@@ -83,7 +83,9 @@ def write_raw(raw_look_up, path):
             _tar_append(
                 tar_obj=tar_obj,
                 name="airshower.histogram.ene_alt.int64.gz",
-                payload_bytes=gzip.compress(data=num.tobytes(order="c"),),
+                payload_bytes=gzip.compress(
+                    data=num.tobytes(order="c"),
+                ),
             )
             _tar_append(
                 tar_obj=tar_obj,
@@ -170,9 +172,10 @@ def write_map_result(
         _tar_append(
             tar_obj=tar_obj,
             name="job.json",
-            payload_bytes=json_utils.dumps(job, indent=4,).encode(
-                encoding="ascii"
-            ),
+            payload_bytes=json_utils.dumps(
+                job,
+                indent=4,
+            ).encode(encoding="ascii"),
         )
         _tar_append(
             tar_obj=tar_obj,
@@ -212,7 +215,6 @@ def write_map_result(
 def read_map_result(path):
     out = {}
     with tarfile.TarFile(path, "r") as tar_obj:
-
         tinfo = tar_obj.next()
         assert tinfo.name == "job.json"
         out["job"] = json_utils.loads(tar_obj.extractfile(tinfo).read())
