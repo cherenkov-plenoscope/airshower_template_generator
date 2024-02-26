@@ -1,5 +1,6 @@
 import numpy as np
 import corsika_primary as cpw
+import spherical_coordinates
 import tempfile
 import os
 import io
@@ -116,8 +117,8 @@ def make_corsika_steering_card(
         primary = {
             "particle_id": f8(particle["corsika_particle_id"]),
             "energy_GeV": f8(energy),
-            "zenith_rad": f8(0.0),
-            "azimuth_rad": f8(0.0),
+            "theta_rad": f8(0.0),
+            "phi_rad": f8(0.0),
             "depth_g_per_cm2": f8(0.0),
         }
         primaries.append(primary)
@@ -306,15 +307,16 @@ def run_job(job):
 
                                 view = cherenkov_bunches[meets, :]
 
-                                MOMENTUM_TO_POINTING = -1.0
                                 (
                                     cer_cpara,
                                     cer_cperp,
                                 ) = projection.project_light_field_onto_source_image(
-                                    cer_cx_rad=MOMENTUM_TO_POINTING
-                                    * view[:, cpw.I.BUNCH.UX_1],
-                                    cer_cy_rad=MOMENTUM_TO_POINTING
-                                    * view[:, cpw.I.BUNCH.VY_1],
+                                    cer_cx_rad=spherical_coordinates.corsika.ux_to_cx(
+                                        ux=view[:, cpw.I.BUNCH.UX_1]
+                                    ),
+                                    cer_cy_rad=spherical_coordinates.corsika.vy_to_cy(
+                                        vy=view[:, cpw.I.BUNCH.VY_1]
+                                    ),
                                     cer_x_m=xy_supports[azi][rad][probe][0],
                                     cer_y_m=xy_supports[azi][rad][probe][1],
                                     primary_cx_rad=0.0,
